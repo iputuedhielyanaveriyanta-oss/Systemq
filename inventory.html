@@ -1,77 +1,97 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SYSTEMQ - Goods Receiving</title>
-<link rel="stylesheet" href="inventory.css">
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SYSTEMQ • Inventory</title>
+  <link rel="stylesheet" href="inventory.css">
 </head>
 <body>
-<header>
-  <div><b>SYSTEMQ</b><small>INVENTORY • GOODS RECEIVING</small></div>
+<header class="topbar">
+  <div class="brand"><b>SYSTEMQ</b><small>INVENTORY • GOODS RECEIVING</small></div>
   <nav>
     <a href="index.html">← MASTER GLOBAL</a>
-    <button onclick="showList()">GOODS RECEIVING</button>
-    <button class="orange" onclick="newReceiving()">＋ NEW GOODS RECEIVING</button>
+    <button class="orange" type="button" onclick="newGR()">＋ NEW GOODS RECEIVING</button>
   </nav>
 </header>
 
 <main>
-<section id="listView">
-  <div class="titleRow"><div><h1>GOODS RECEIVING</h1><p>Penerimaan barang dari supplier. Stok bertambah hanya setelah POSTING.</p></div>
-  <button class="orange" onclick="newReceiving()">＋ NEW GOODS RECEIVING</button></div>
-  <div class="panel">
-    <input id="search" placeholder="Cari No. PL atau Supplier..." oninput="renderList()">
-    <div class="tableWrap"><table><thead><tr><th>TANGGAL</th><th>SUPPLIER</th><th>NO. PACKING LIST</th><th>ITEM</th><th>STATUS</th><th></th></tr></thead><tbody id="listBody"></tbody></table></div>
-  </div>
-</section>
-
-<section id="formView" class="hidden">
-  <div class="titleRow"><div><h1 id="pageTitle">NEW GOODS RECEIVING</h1><p id="pageSub">Isi header, import PL, lalu lanjut scan.</p></div><button onclick="showList()">← KEMBALI</button></div>
-
-  <div id="stepHeader" class="panel">
-    <h2>1. HEADER GOODS RECEIVING</h2>
-    <div class="grid">
-      <div><label>TANGGAL</label><input id="grDate" type="date"></div>
-      <div><label>SUPPLIER</label><select id="supplier"></select></div>
-      <div><label>NO. PACKING LIST</label><input id="plNo" placeholder="Ketik nomor PL dari supplier"></div>
-      <div><label>KETERANGAN <small>(opsional)</small></label><input id="note" placeholder="Keterangan"></div>
+  <section id="listView">
+    <div class="pageHead">
+      <div>
+        <h1>GOODS RECEIVING</h1>
+        <p>Catat penerimaan barang dari supplier. Stok belum berubah pada tahap draft.</p>
+      </div>
+      <button class="orange" type="button" onclick="newGR()">＋ NEW GOODS RECEIVING</button>
     </div>
-    <div class="actions">
-      <label class="fileBtn">⇧ IMPORT EXCEL PL
-        <input id="excelFile" type="file" accept=".xlsx,.xls,.csv" onchange="importPL(event)">
-      </label>
-      <button onclick="saveDraft()">SIMPAN DRAFT</button>
-      <button class="orange" id="continueBtn" onclick="continueScan()" disabled>LANJUT KE SCAN →</button>
-    </div>
-    <p class="hint">Format Excel minimal: <b>BARCODE</b> dan <b>QTY</b>. Header boleh: BARCODE / QTY.</p>
-  </div>
 
-  <div id="importResult" class="panel hidden">
-    <div class="summary"><h2>2. PACKING LIST YANG DIIMPORT</h2><span id="importSummary"></span></div>
-    <div id="importError" class="error hidden"></div>
-    <div class="tableWrap"><table><thead><tr><th>BARCODE</th><th>SKU</th><th>NAMA BARANG</th><th>SIZE</th><th>PL QTY</th><th>SCAN QTY</th><th>BALANCE</th></tr></thead><tbody id="plBody"></tbody></table></div>
-  </div>
+    <div class="panel">
+      <input id="search" class="search" placeholder="Cari Nomor PL atau Supplier..." oninput="renderList()">
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>TANGGAL</th>
+              <th>SUPPLIER</th>
+              <th>NO. PACKING LIST</th>
+              <th>KETERANGAN</th>
+              <th>STATUS</th>
+              <th>AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="listBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
-  <div id="scanPanel" class="panel hidden">
-    <h2>3. SCAN BARANG FISIK</h2>
-    <div class="scanRow">
-      <input id="scanInput" autocomplete="off" placeholder="Scan barcode lalu Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();scanBarcode()}">
-      <button class="orange" onclick="scanBarcode()">SCAN</button>
+  <section id="formView" class="hidden">
+    <div class="pageHead">
+      <div>
+        <h1 id="formTitle">NEW GOODS RECEIVING</h1>
+        <p>Langkah 1 dari proses penerimaan barang: isi header transaksi terlebih dahulu.</p>
+      </div>
+      <button type="button" onclick="backToList()">← KEMBALI</button>
     </div>
-    <div id="scanMessage" class="message"></div>
-    <div class="balanceBar">
-      <div><b id="totalExpected">0</b><small>EXPECTED</small></div>
-      <div><b id="totalScanned">0</b><small>SCANNED</small></div>
-      <div><b id="totalBalance">0</b><small>BALANCE</small></div>
-      <div><b id="balanceStatus">BELUM BALANCE</b><small>STATUS</small></div>
+
+    <div class="panel formPanel">
+      <div class="stepTitle"><span>1</span><div><h2>HEADER GOODS RECEIVING</h2><p>Data ini mengikuti Packing List fisik dari supplier.</p></div></div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="grDate">TANGGAL <em>*</em></label>
+          <input id="grDate" type="date">
+        </div>
+
+        <div class="field">
+          <label for="grSupplier">SUPPLIER <em>*</em></label>
+          <select id="grSupplier"></select>
+        </div>
+
+        <div class="field full">
+          <label for="grPL">NOMOR PACKING LIST <em>*</em></label>
+          <input id="grPL" autocomplete="off" placeholder="Ketik manual nomor PL dari supplier">
+          <small>Nomor PL diketik sesuai dokumen Packing List yang dikirim supplier.</small>
+        </div>
+
+        <div class="field full">
+          <label for="grNote">KETERANGAN <span>(opsional)</span></label>
+          <textarea id="grNote" rows="3" placeholder="Contoh: Barang datang gudang utama / catatan penerimaan"></textarea>
+        </div>
+      </div>
+
+      <div class="notice">
+        <b>Catatan:</b> Setelah header tersimpan, transaksi akan berstatus <b>DRAFT</b>. Pada langkah berikutnya baru ditambahkan Import Packing List dan proses Scan.
+      </div>
+
+      <div class="actions">
+        <button type="button" onclick="backToList()">BATAL</button>
+        <button class="orange" type="button" onclick="saveGR()">SIMPAN DRAFT</button>
+      </div>
     </div>
-    <div class="tableWrap"><table><thead><tr><th>BARCODE</th><th>SKU</th><th>NAMA BARANG</th><th>SIZE</th><th>PL QTY</th><th>SCAN QTY</th><th>BALANCE</th></tr></thead><tbody id="scanBody"></tbody></table></div>
-    <div class="actions right"><button onclick="showList()">SIMPAN & KELUAR</button><button id="postBtn" class="post" onclick="postReceiving()" disabled>POSTING</button></div>
-  </div>
-</section>
+  </section>
 </main>
+
 <script src="inventory.js"></script>
 </body>
 </html>
