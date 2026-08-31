@@ -95,6 +95,24 @@ Object.keys(SCHEMA).forEach(key => {
 });
 if (!db.brandPromos || typeof db.brandPromos !== 'object') db.brandPromos = {};
 
+// SAFE RECOVERY: only fill missing Brand Promo/Group data from older local storage,
+// never overwrite data already present in systemq_v17_data.
+(function recoverBrandPromos() {
+  ['systemq_v18_data', 'systemq_v16_data'].forEach(oldKey => {
+    try {
+      const oldDb = JSON.parse(localStorage.getItem(oldKey) || '{}');
+      const oldPromos = oldDb && oldDb.brandPromos;
+      if (!oldPromos || typeof oldPromos !== 'object') return;
+
+      Object.keys(oldPromos).forEach(key => {
+        if (!Array.isArray(db.brandPromos[key]) || db.brandPromos[key].length === 0) {
+          db.brandPromos[key] = oldPromos[key];
+        }
+      });
+    } catch (e) {}
+  });
+})();
+
 
 let currentType = 'store';
 let selectedIndex = null;
@@ -237,8 +255,27 @@ function brandPromoKey(brand) {
 
 function getBrandPromos(brandValue) {
   const brand = brandRecord(brandValue);
-  const key = brandPromoKey(brand);
-  return key && Array.isArray(db.brandPromos[key]) ? db.brandPromos[key] : [];
+  if (!brand || !db.brandPromos || typeof db.brandPromos !== 'object') return [];
+
+  // Current format uses brand code. Older saved data may use brand name.
+  const candidates = [
+    String(brand.code || '').trim(),
+    String(brand.name || '').trim(),
+    String(brandValue || '').trim()
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (Array.isArray(db.brandPromos[candidate])) return db.brandPromos[candidate];
+  }
+
+  // Case-insensitive fallback so existing data is not hidden when key casing differs.
+  const matchedKey = Object.keys(db.brandPromos).find(key =>
+    candidates.some(candidate => String(key).trim().toLowerCase() === candidate.toLowerCase())
+  );
+
+  return matchedKey && Array.isArray(db.brandPromos[matchedKey])
+    ? db.brandPromos[matchedKey]
+    : [];
 }
 
 function groupLabel(item, index) {
@@ -358,8 +395,7 @@ function openProductForm(record) {
 
 function openBrandForm(record) {
   const r = record || {};
-  const key = brandPromoKey(r);
-  const promos = (key && db.brandPromos[key]) || [];
+  const promos = getBrandPromos(r.name || r.code || '');
   let promoRows = promos.map((p, i) =>
     '<div class="promo-row" data-promo-row="' + i + '">' +
     '<input placeholder="KELOMPOK" value="' + escapeHtml(p.group || '') + '">' +
