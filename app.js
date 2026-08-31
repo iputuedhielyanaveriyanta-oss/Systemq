@@ -133,12 +133,38 @@ function editBrandPromo(i){editingPromoIndex=i;openBrandPromoForm()}
 function openBrandPromoForm(){const list=currentPromoList();const r=editingPromoIndex===null?{group:'',promo:'',discount:'',margin:'',status:'ACTIVE'}:list[editingPromoIndex];$('modalTitle').textContent=editingPromoIndex===null?'Tambah Promo / Margin':'Edit Promo / Margin';$('form').innerHTML=`
 <div class="field"><label>KELOMPOK</label><input name="group" value="${esc(r.group||'')}" placeholder="Kosongkan bila tidak perlu"></div>
 <div class="field"><label>PROMO</label><input name="promo" value="${esc(r.promo||'')}" placeholder="Contoh: New Arrival / Diskon 30"></div>
-<div class="field"><label>DISKON %</label><input type="number" name="discount" value="${esc(r.discount||'')}" placeholder="Contoh: 30"></div>
-<div class="field"><label>MARGIN</label><input type="number" name="margin" value="${esc(r.margin||'')}" placeholder="Contoh: 27"></div>
+<div class="field"><label>DISKON %</label><input type="text" inputmode="decimal" name="discount" value="${esc(r.discount||'')}" placeholder="Contoh: 30 atau 27.5"></div>
+<div class="field"><label>MARGIN %</label><input type="text" inputmode="decimal" name="margin" value="${esc(r.margin||'')}" placeholder="Contoh: 27.5"></div>
 <div class="field"><label>STATUS</label><select name="status"><option ${r.status==='ACTIVE'?'selected':''}>ACTIVE</option><option ${r.status==='INACTIVE'?'selected':''}>INACTIVE</option></select></div>
 <button class="orange" type="submit">SIMPAN</button>`;
 $('modal').classList.remove('hidden')}
-function saveBrandPromo(e){e.preventDefault();const fd=new FormData($('form'));const r={group:String(fd.get('group')||'').trim(),promo:String(fd.get('promo')||'').trim(),discount:String(fd.get('discount')||'').trim(),margin:String(fd.get('margin')||'').trim(),status:String(fd.get('status')||'ACTIVE')};if(!r.promo)return alert('PROMO wajib diisi.');const list=currentPromoList();if(editingPromoIndex===null)list.push(r);else list[editingPromoIndex]=r;persist();editingPromoIndex=null;closeModal();$('brandDetail').classList.remove('hidden');renderBrandPromos()}
+function normalizePercent(v){
+  return String(v||'').trim().replace('%','').replace(',','.');
+}
+function saveBrandPromo(e){
+  e.preventDefault();
+  const fd=new FormData($('form'));
+  const r={
+    group:String(fd.get('group')||'').trim(),
+    promo:String(fd.get('promo')||'').trim(),
+    discount:normalizePercent(fd.get('discount')),
+    margin:normalizePercent(fd.get('margin')),
+    status:String(fd.get('status')||'ACTIVE')
+  };
+  if(!r.promo)return alert('PROMO wajib diisi.');
+  for(const field of ['discount','margin']){
+    if(r[field]!=='' && !/^\d+(\.\d+)?$/.test(r[field])){
+      return alert((field==='discount'?'DISKON':'MARGIN')+' harus berupa angka. Contoh: 27.5');
+    }
+  }
+  const list=currentPromoList();
+  if(editingPromoIndex===null)list.push(r);else list[editingPromoIndex]=r;
+  persist();
+  editingPromoIndex=null;
+  closeModal();
+  $('brandDetail').classList.remove('hidden');
+  renderBrandPromos();
+}
 function deleteBrandPromo(i){if(!confirm('Hapus promo ini?'))return;currentPromoList().splice(i,1);persist();renderBrandPromos()}
 
 function exportData(){const rows=[currentFields().map(f=>f[1]),...db[currentType].map(r=>currentFields().map(f=>r[f[0]]||''))];const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SYSTEMQ_'+currentType.toUpperCase()+'.csv';a.click();URL.revokeObjectURL(a.href)}
