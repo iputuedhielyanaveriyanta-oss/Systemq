@@ -49,13 +49,62 @@
   .toolbar > button,.toolbar > label{min-height:42px!important;height:42px!important;font-size:14px!important}
 }
 </style>
+
+<style id="toolbar-final-compact">
+.master-toolbar{
+ display:flex!important;
+ flex-wrap:wrap!important;
+ gap:8px!important;
+ align-items:center!important;
+ margin:8px 0 14px!important;
+ padding:3px!important;
+}
+.master-toolbar button,.master-toolbar .tool-file{
+ min-width:94px!important;
+ height:38px!important;
+ min-height:38px!important;
+ padding:0 12px!important;
+ margin:0!important;
+ border-radius:12px!important;
+ display:inline-flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ box-sizing:border-box!important;
+ font-size:13px!important;
+ font-weight:700!important;
+ white-space:nowrap!important;
+}
+.master-toolbar .tool-file{cursor:pointer!important}
+.master-toolbar .tool-file input{display:none!important}
+@media(max-width:650px){
+ .master-toolbar{gap:7px!important}
+ .master-toolbar button,.master-toolbar .tool-file{
+  flex:1 1 calc(33.333% - 7px)!important;
+  min-width:0!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0 8px!important;
+  font-size:12px!important;
+ }
+}
+@media(max-width:390px){
+ .master-toolbar button,.master-toolbar .tool-file{flex:1 1 calc(50% - 7px)!important}
+}
+</style>
+
 </head><body>
 <header><div><b>SYSTEMQ</b><small>SYSTEM TOKO</small></div><nav><button onclick="show('master')">MASTER GLOBAL</button><button onclick="show('inventory')">INVENTORY</button><button onclick="show('report')">LAPORAN</button><button onclick="show('finance')">FINANCE & AKUNTING</button></nav></header>
 <main>
 <section id="master"><h1>MASTER GLOBAL</h1><p>Kelola seluruh data master yang digunakan bersama oleh semua store.</p>
 <div class="filter"><select id="type" onchange="setType(this.value)"><option value="store">STORE</option><option value="guide">GUIDE</option><option value="supplier">SUPPLIER</option><option value="brand">BRAND</option><option value="spare">SPARE</option><option value="color">WARNA</option><option value="size">KOLOM SIZE</option><option value="product">MASTER BARANG</option></select></div>
-<div class="toolbar"><button class="orange" onclick="add()">＋ ADD</button><button onclick="edit()">✏ EDIT</button><button class="red" onclick="del()">🗑 DELETE</button><button onclick="exportData()">⇩ EXPORT EXCEL</button><button onclick="alert('Keluar dari '+title())">← KELUAR</button></div>
-<div id="productTools" class="toolbar special hidden"><button>📦 BARANG</button><button class="orange" onclick="add()">＋ REGISTER BARANG</button><button class="red" onclick="del()">🗑 DELETE</button><button onclick="discount()">% UPDATE DISKON</button><label>⇧ IMPORT EXCEL<input type="file" accept=".csv" onchange="importCSV(event)"></label><button onclick="alert('Master diperbarui')">↻ UPDATE NEW MASTER</button></div>
+<div class="toolbar master-toolbar">
+<button class="orange" onclick="add()">＋ REGISTER</button>
+<button onclick="edit()">✏ EDIT</button>
+<button class="red" onclick="del()">🗑 DELETE</button>
+<label class="tool-file">⇧ IMPORT<input type="file" accept=".csv" onchange="importCSV(event)"></label>
+<button onclick="exportData()">⇩ EXPORT</button>
+</div>
+
 <input id="search" placeholder="Cari data..." oninput="render()"><b id="count"></b><h3 id="tableTitle"></h3>
 <div class="table"><table><thead id="head"></thead><tbody id="body"></tbody></table></div></section>
 <section id="inventory" class="hidden"><h1>INVENTORY</h1><div class="box">Tahap berikutnya: stok per Store.</div></section>
