@@ -1,4 +1,3 @@
-/* SYSTEMQ BUTTON FIX + DATA RECOVERY */
 const STORAGE_KEY = 'systemq_v18_data';
 const LEGACY_KEYS = ['systemq_v17_data','systemq_v16_data'];
 
@@ -10,61 +9,16 @@ const SCHEMA = {
   spare:{title:'SPARE',fields:[['code','KODE SPARE'],['name','JENIS SPARE'],['status','STATUS','select',['ACTIVE','INACTIVE']]]},
   color:{title:'WARNA',fields:[['code','KODE WARNA'],['name','NAMA WARNA'],['status','STATUS','select',['ACTIVE','INACTIVE']]]},
   size:{title:'KOLOM SIZE',fields:[['code','KODE SIZE'],['type','JENIS SIZE'],['sizes','DAFTAR SIZE (pisahkan dengan koma)'],['status','STATUS','select',['ACTIVE','INACTIVE']]]},
-  product:{title:'MASTER BARANG',fields:[['brand','BRAND','dynamic','brand'],['supplier','SUPPLIER','dynamic','supplier'],['sku','SKU'],['name','NAMA BARANG'],['barcode','BARCODE'],['spare','SPARE','dynamic','spare'],['color','WARNA','dynamic','color'],['price','HARGA JUAL'],['discount','DISKON %'],['size','SIZE','dynamic','size'],['status','STATUS','select',['ACTIVE','INACTIVE']]]}
+  product:{title:'MASTER BARANG',fields:[['brand','BRAND','dynamic','brand'],['group','KELOMPOK','brandGroup'],['supplier','SUPPLIER','dynamic','supplier'],['sku','SKU'],['name','NAMA BARANG'],['barcode','BARCODE'],['spare','SPARE','dynamic','spare'],['color','WARNA','dynamic','color'],['price','HARGA JUAL'],['promo','PROMO','readonly'],['discount','DISKON %','readonly'],['margin','MARGIN','readonly'],['size','SIZE','dynamic','size'],['status','STATUS','select',['ACTIVE','INACTIVE']]]}
 };
 
-function parseStored(key){
-  try{
-    const raw=localStorage.getItem(key);
-    const value=raw?JSON.parse(raw):null;
-    return value && typeof value==='object' ? value : null;
-  }catch(e){ return null; }
+let db = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+if (!db) {
+  for (const key of LEGACY_KEYS) { const old=localStorage.getItem(key); if(old){ try{ db=JSON.parse(old); break; }catch(e){} } }
 }
-function normalize(data){
-  const out=data && typeof data==='object' ? data : {};
-  Object.keys(SCHEMA).forEach(k=>{ if(!Array.isArray(out[k])) out[k]=[]; });
-  if(!out.brandPromos || typeof out.brandPromos!=='object') out.brandPromos={};
-  return out;
-}
-function recordKey(r,type){
-  if(!r || typeof r!=='object') return '';
-  return String(type==='product'?(r.sku||''):(r.code||r.name||'')).trim().toLowerCase();
-}
-function mergeList(target,source,type){
-  const out=Array.isArray(target)?target.slice():[];
-  const seen=new Set(out.map(x=>recordKey(x,type)).filter(Boolean));
-  (Array.isArray(source)?source:[]).forEach(x=>{
-    const key=recordKey(x,type);
-    if(!key || !seen.has(key)){ out.push(x); if(key) seen.add(key); }
-  });
-  return out;
-}
-function mergePromos(target,source){
-  const out=target && typeof target==='object'?{...target}:{};
-  if(!source || typeof source!=='object') return out;
-  Object.keys(source).forEach(k=>{
-    const arr=Array.isArray(out[k])?out[k].slice():[];
-    const seen=new Set(arr.map(x=>JSON.stringify(x)));
-    (Array.isArray(source[k])?source[k]:[]).forEach(x=>{
-      const sig=JSON.stringify(x);
-      if(!seen.has(sig)){arr.push(x);seen.add(sig);}
-    });
-    out[k]=arr;
-  });
-  return out;
-}
-function mergeDb(target,source){
-  const out=normalize(target), src=normalize(source);
-  Object.keys(SCHEMA).forEach(type=>{ out[type]=mergeList(out[type],src[type],type); });
-  out.brandPromos=mergePromos(out.brandPromos,src.brandPromos);
-  return out;
-}
-let db=normalize(parseStored(STORAGE_KEY));
-for(const key of LEGACY_KEYS){
-  const legacy=parseStored(key);
-  if(legacy) db=mergeDb(db,legacy);
-}
-localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
+if (!db || typeof db !== 'object') db={};
+Object.keys(SCHEMA).forEach(key=>{if(!Array.isArray(db[key])) db[key]=[];});
+if(!db.brandPromos || typeof db.brandPromos!=='object') db.brandPromos={};
 
 let currentType='store', selectedIndex=null, editingIndex=null;
 let currentBrandIndex=null, editingPromoIndex=null;
@@ -109,9 +63,37 @@ function dynamicOptions(source){
   return activeRecords(source).map(x=>({value:x.name||x.code||'',label:x.code&&x.name?x.code+' - '+x.name:(x.name||x.code||'')})).filter(x=>x.value)
 }
 function renderDynamicSelect(f,v){const opts=dynamicOptions(f[3]); let h='<select name="'+esc(f[0])+'"><option value="">-- PILIH '+esc(f[1])+' --</option>'; if(v&&!opts.some(o=>o.value===v))h+='<option selected value="'+esc(v)+'">'+esc(v)+'</option>'; h+=opts.map(o=>'<option value="'+esc(o.value)+'"'+(v===o.value?' selected':'')+'>'+esc(o.label)+'</option>').join(''); return h+'</select>'}
+
+function productBrandRecord(value){return (db.brand||[]).find(b=>(b.name||b.code||'')===value)||null}
+function promoListForBrand(value){const b=productBrandRecord(value);if(!b)return[];const i=db.brand.indexOf(b);return db.brandPromos[brandKey(b,i)]||[]}
+function promoGroupLabel(x,i){return String(x.group||x.promo||('Promo '+(i+1))).trim()}
+function renderProductGroupSelect(value,selected){const list=promoListForBrand(value).filter(x=>!x.status||x.status==='ACTIVE');let h='<select name="group" id="productGroup" onchange="onProductGroupChange(this.value)"><option value="">-- PILIH KELOMPOK --</option>';h+=list.map((x,i)=>{const label=promoGroupLabel(x,i);return '<option value="'+esc(label)+'"'+(selected===label?' selected':'')+'>'+esc(label)+'</option>'}).join('');return h+'</select>'}
+function selectedProductPromo(){const brand=$('productBrand')?.value||'';const group=$('productGroup')?.value||'';const list=promoListForBrand(brand).filter(x=>!x.status||x.status==='ACTIVE');return list.find((x,i)=>promoGroupLabel(x,i)===group)||null}
+function onProductBrandChange(value){const box=$('productGroupWrap');if(box)box.innerHTML='<label>KELOMPOK</label>'+renderProductGroupSelect(value,'');const b=productBrandRecord(value);const supplier=$('productSupplier');if(supplier&&b&&b.supplier){supplier.value=b.supplier}onProductGroupChange('')}
+function onProductGroupChange(value){const p=selectedProductPromo();if($('productPromo'))$('productPromo').value=p?(p.promo||''):'';if($('productDiscount'))$('productDiscount').value=p?(p.discount||''):'';if($('productMargin'))$('productMargin').value=p?(p.margin||''):''}
 function add(){editingIndex=null;openForm()}
 function edit(){if(selectedIndex===null)return alert('Pilih satu data terlebih dahulu.');editingIndex=selectedIndex;openForm()}
-function openForm(){const r=editingIndex===null?{}:db[currentType][editingIndex];$('modalTitle').textContent=(editingIndex===null?'Tambah ':'Update ')+title();$('form').innerHTML=currentFields().map(f=>{const v=r[f[0]]||'';let c;if(f[2]==='select')c='<select name="'+esc(f[0])+'">'+f[3].map(o=>'<option value="'+esc(o)+'"'+(v===o?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';else if(f[2]==='dynamic')c=renderDynamicSelect(f,v);else c='<input type="'+(['commission','discount','margin','price'].includes(f[0])?'number':'text')+'" name="'+esc(f[0])+'" value="'+esc(v)+'">';return '<div class="field"><label>'+esc(f[1])+'</label>'+c+'</div>'}).join('')+'<button class="orange" type="submit">SIMPAN</button>';$('modal').classList.remove('hidden')}
+function openProductForm(r){
+  const brandValue=r.brand||'';
+  $('form').innerHTML=`
+<div class="field"><label>BRAND</label><select name="brand" id="productBrand" onchange="onProductBrandChange(this.value)"><option value="">-- PILIH BRAND --</option>${dynamicOptions('brand').map(o=>'<option value="'+esc(o.value)+'"'+(brandValue===o.value?' selected':'')+'>'+esc(o.label)+'</option>').join('')}</select></div>
+<div class="field" id="productGroupWrap"><label>KELOMPOK</label>${renderProductGroupSelect(brandValue,r.group||'')}</div>
+<div class="field"><label>SUPPLIER</label><select name="supplier" id="productSupplier"><option value="">-- PILIH SUPPLIER --</option>${dynamicOptions('supplier').map(o=>'<option value="'+esc(o.value)+'"'+((r.supplier||'')===o.value?' selected':'')+'>'+esc(o.label)+'</option>').join('')}</select></div>
+<div class="field"><label>SKU</label><input name="sku" value="${esc(r.sku||'')}"></div>
+<div class="field"><label>NAMA BARANG</label><input name="name" value="${esc(r.name||'')}"></div>
+<div class="field"><label>BARCODE</label><input name="barcode" value="${esc(r.barcode||'')}"></div>
+<div class="field"><label>SPARE</label>${renderDynamicSelect(['spare','SPARE','dynamic','spare'],r.spare||'')}</div>
+<div class="field"><label>WARNA</label>${renderDynamicSelect(['color','WARNA','dynamic','color'],r.color||'')}</div>
+<div class="field"><label>HARGA JUAL</label><input type="number" step="0.01" name="price" value="${esc(r.price||'')}"></div>
+<div class="field"><label>PROMO</label><input id="productPromo" name="promo" readonly value="${esc(r.promo||'')}"></div>
+<div class="field"><label>DISKON %</label><input id="productDiscount" name="discount" readonly value="${esc(r.discount||'')}"></div>
+<div class="field"><label>MARGIN</label><input id="productMargin" name="margin" readonly value="${esc(r.margin||'')}"></div>
+<div class="field"><label>SIZE</label>${renderDynamicSelect(['size','SIZE','dynamic','size'],r.size||'')}</div>
+<div class="field"><label>STATUS</label><select name="status"><option value="ACTIVE" ${(r.status||'ACTIVE')==='ACTIVE'?'selected':''}>ACTIVE</option><option value="INACTIVE" ${r.status==='INACTIVE'?'selected':''}>INACTIVE</option></select></div>
+<button class="orange" type="submit">SIMPAN</button>`;
+  const b=productBrandRecord(brandValue);if(b&&b.supplier&&!r.supplier)$('productSupplier').value=b.supplier;onProductGroupChange(r.group||'');
+}
+function openForm(){const r=editingIndex===null?{}:db[currentType][editingIndex];$('modalTitle').textContent=(editingIndex===null?'Tambah ':'Update ')+title();if(currentType==='product'){openProductForm(r);$('modal').classList.remove('hidden');return;}$('form').innerHTML=currentFields().map(f=>{const v=r[f[0]]||'';let c;if(f[2]==='select')c='<select name="'+esc(f[0])+'">'+f[3].map(o=>'<option value="'+esc(o)+'"'+(v===o?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';else if(f[2]==='dynamic')c=renderDynamicSelect(f,v);else c='<input type="'+(['commission','discount','margin','price'].includes(f[0])?'number':'text')+'" name="'+esc(f[0])+'" value="'+esc(v)+'">';return '<div class="field"><label>'+esc(f[1])+'</label>'+c+'</div>'}).join('')+'<button class="orange" type="submit">SIMPAN</button>';$('modal').classList.remove('hidden')}
 function closeModal(){$('modal').classList.add('hidden')}
 function save(e){e.preventDefault();const fd=new FormData($('form')),r={};currentFields().forEach(f=>r[f[0]]=String(fd.get(f[0])||'').trim());const key=currentType==='product'?'sku':'code';if(r[key]){const dup=db[currentType].some((x,i)=>String(x[key]||'').toLowerCase()===r[key].toLowerCase()&&i!==editingIndex);if(dup)return alert(key.toUpperCase()+' sudah digunakan.')}if(editingIndex===null)db[currentType].push(r);else db[currentType][editingIndex]=r;selectedIndex=null;editingIndex=null;persist();closeModal();render()}
 function del(){if(selectedIndex===null)return alert('Pilih data terlebih dahulu.');if(!confirm('Hapus data yang dipilih?'))return;db[currentType].splice(selectedIndex,1);selectedIndex=null;persist();render()}
@@ -122,49 +104,17 @@ function currentBrand(){return currentBrandIndex===null?null:db.brand[currentBra
 function currentPromoList(){const b=currentBrand();if(!b)return[];const k=brandKey(b,currentBrandIndex);if(!Array.isArray(db.brandPromos[k]))db.brandPromos[k]=[];return db.brandPromos[k]}
 function renderBrandPromos(){const list=currentPromoList();$('brandPromoBody').innerHTML=list.length?list.map((x,i)=>'<tr><td>'+esc(x.group||'-')+'</td><td>'+esc(x.promo||'-')+'</td><td>'+esc(x.discount||'-')+'</td><td>'+esc(x.margin||'-')+'</td><td>'+esc(x.status||'-')+'</td><td><button class="small" onclick="editBrandPromo('+i+')">✎ EDIT</button> <button class="small red" onclick="deleteBrandPromo('+i+')">DELETE</button></td></tr>').join(''):'<tr><td colspan="6" style="text-align:center;padding:30px;color:#77838e">Belum ada promo. Klik TAMBAH PROMO / MARGIN.</td></tr>'}
 function editCurrentBrand(){if(currentBrandIndex===null)return;$('brandDetail').classList.add('hidden');currentType='brand';selectedIndex=currentBrandIndex;editingIndex=currentBrandIndex;openForm()}
-function addBrandPromo(){
-  if(currentBrandIndex===null) return alert('Pilih BRAND terlebih dahulu.');
-  editingPromoIndex=null;
-  const detail=$('brandDetailModal');
-  if(detail) detail.classList.add('hidden');
-  openBrandPromoForm();
-}
+function addBrandPromo(){editingPromoIndex=null;openBrandPromoForm()}
 function editBrandPromo(i){editingPromoIndex=i;openBrandPromoForm()}
 function openBrandPromoForm(){const list=currentPromoList();const r=editingPromoIndex===null?{group:'',promo:'',discount:'',margin:'',status:'ACTIVE'}:list[editingPromoIndex];$('modalTitle').textContent=editingPromoIndex===null?'Tambah Promo / Margin':'Edit Promo / Margin';$('form').innerHTML=`
 <div class="field"><label>KELOMPOK</label><input name="group" value="${esc(r.group||'')}" placeholder="Kosongkan bila tidak perlu"></div>
 <div class="field"><label>PROMO</label><input name="promo" value="${esc(r.promo||'')}" placeholder="Contoh: New Arrival / Diskon 30"></div>
-<div class="field"><label>DISKON %</label><input type="text" inputmode="decimal" name="discount" value="${esc(r.discount||'')}" placeholder="Contoh: 30 atau 27.5"></div>
-<div class="field"><label>MARGIN %</label><input type="text" inputmode="decimal" name="margin" value="${esc(r.margin||'')}" placeholder="Contoh: 27.5"></div>
+<div class="field"><label>DISKON %</label><input type="number" step="0.01" name="discount" value="${esc(r.discount||'')}" placeholder="Contoh: 30"></div>
+<div class="field"><label>MARGIN</label><input type="number" step="0.01" name="margin" value="${esc(r.margin||'')}" placeholder="Contoh: 27"></div>
 <div class="field"><label>STATUS</label><select name="status"><option ${r.status==='ACTIVE'?'selected':''}>ACTIVE</option><option ${r.status==='INACTIVE'?'selected':''}>INACTIVE</option></select></div>
 <button class="orange" type="submit">SIMPAN</button>`;
-$('modal').classList.remove('hidden')}
-function normalizePercent(v){
-  return String(v||'').trim().replace('%','').replace(',','.');
-}
-function saveBrandPromo(e){
-  e.preventDefault();
-  const fd=new FormData($('form'));
-  const r={
-    group:String(fd.get('group')||'').trim(),
-    promo:String(fd.get('promo')||'').trim(),
-    discount:normalizePercent(fd.get('discount')),
-    margin:normalizePercent(fd.get('margin')),
-    status:String(fd.get('status')||'ACTIVE')
-  };
-  if(!r.promo)return alert('PROMO wajib diisi.');
-  for(const field of ['discount','margin']){
-    if(r[field]!=='' && !/^\d+(\.\d+)?$/.test(r[field])){
-      return alert((field==='discount'?'DISKON':'MARGIN')+' harus berupa angka. Contoh: 27.5');
-    }
-  }
-  const list=currentPromoList();
-  if(editingPromoIndex===null)list.push(r);else list[editingPromoIndex]=r;
-  persist();
-  editingPromoIndex=null;
-  closeModal();
-  $('brandDetail').classList.remove('hidden');
-  renderBrandPromos();
-}
+$('form').onsubmit=saveBrandPromo;$('modal').classList.remove('hidden')}
+function saveBrandPromo(e){e.preventDefault();const fd=new FormData($('form'));const r={group:String(fd.get('group')||'').trim(),promo:String(fd.get('promo')||'').trim(),discount:String(fd.get('discount')||'').trim(),margin:String(fd.get('margin')||'').trim(),status:String(fd.get('status')||'ACTIVE')};if(!r.promo)return alert('PROMO wajib diisi.');const list=currentPromoList();if(editingPromoIndex===null)list.push(r);else list[editingPromoIndex]=r;persist();editingPromoIndex=null;$('form').onsubmit=save;closeModal();$('brandDetail').classList.remove('hidden');renderBrandPromos()}
 function deleteBrandPromo(i){if(!confirm('Hapus promo ini?'))return;currentPromoList().splice(i,1);persist();renderBrandPromos()}
 
 function exportData(){const rows=[currentFields().map(f=>f[1]),...db[currentType].map(r=>currentFields().map(f=>r[f[0]]||''))];const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SYSTEMQ_'+currentType.toUpperCase()+'.csv';a.click();URL.revokeObjectURL(a.href)}
@@ -172,11 +122,4 @@ function discount(){if(currentType!=='product')return alert('Fitur ini hanya unt
 function importCSV(e){const file=e.target.files&&e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const text=String(reader.result||'').replace(/^\uFEFF/,'').trim();if(!text)return alert('File kosong.');const lines=text.split(/\r?\n/).filter(Boolean);if(lines.length<2)return alert('CSV harus memiliki header dan minimal satu data.');const headers=parseCSVLine(lines.shift()).map(x=>x.trim().toLowerCase());let imported=0;lines.forEach(line=>{const vals=parseCSVLine(line),r={};currentFields().forEach(f=>{let i=headers.indexOf(f[0].toLowerCase());if(i<0)i=headers.indexOf(f[1].toLowerCase());r[f[0]]=i>=0?String(vals[i]||'').trim():''});if(Object.values(r).some(Boolean)){db[currentType].push(r);imported++}});persist();render();alert(imported+' data berhasil diimport.')};reader.readAsText(file);e.target.value=''}
 function parseCSVLine(line){const r=[];let c='',q=false;for(let i=0;i<line.length;i++){const x=line[i];if(x==='"'){if(q&&line[i+1]==='"'){c+='"';i++}else q=!q}else if(x===','&&!q){r.push(c);c=''}else c+=x}r.push(c);return r}
 
-document.addEventListener('DOMContentLoaded',()=>{
-  migrateLegacyBrandPromos();
-  $('form').addEventListener('submit',(e)=>{
-    if(editingPromoIndex!==null || $('modalTitle').textContent.includes('Promo / Margin')) saveBrandPromo(e);
-    else save(e);
-  });
-  setType('store');
-});
+document.addEventListener('DOMContentLoaded',()=>{migrateLegacyBrandPromos();$('form').addEventListener('submit',save);setType('store')});
