@@ -48,7 +48,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
     <div class="tableWrap">
       <table>
         <thead><tr>
-          <th>TANGGAL</th><th>SUPPLIER</th><th>NO. PACKING LIST</th>
+          <th>TANGGAL</th><th>STORE</th><th>SUPPLIER</th><th>NO. PACKING LIST</th>
           <th>KETERANGAN</th><th>STATUS</th><th>AKSI</th>
         </tr></thead>
         <tbody id="listBody"></tbody>
@@ -77,10 +77,15 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
         <input id="grDate" type="date">
       </div>
       <div class="field">
+        <label>STORE / KODE STORE <em>*</em></label>
+        <select id="grStore"></select>
+        <small>Stok hasil POSTING akan masuk ke store ini.</small>
+      </div>
+      <div class="field">
         <label>SUPPLIER <em>*</em></label>
         <select id="grSupplier"></select>
       </div>
-      <div class="field full">
+      <div class="field">
         <label>NOMOR PACKING LIST <em>*</em></label>
         <input id="grPL" type="text" autocomplete="off" placeholder="Ketik manual nomor PL dari supplier">
         <small>Nomor PL diketik sesuai dokumen supplier.</small>
@@ -90,6 +95,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
         <textarea id="grNote" rows="3" placeholder="Contoh: Barang datang gudang utama"></textarea>
       </div>
     </div>
+    <div id="storeWarning" class="notice hidden"></div>
     <div id="supplierWarning" class="notice hidden"></div>
     <div class="actions">
       <button id="cancelBtn" type="button">BATAL</button>
@@ -227,7 +233,9 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
 'use strict';
 var MASTER_KEY='systemq_v17_data';
 var GR_KEY='systemq_inventory_goods_receiving_v1';
-var master={},docs=[],current=null;
+var STOCK_KEY='systemq_inventory_stock_v1';
+var MOVEMENT_KEY='systemq_inventory_stock_movement_v1';
+var master={},docs=[],stockRows=[],movements=[],current=null;
 
 function el(id){return document.getElementById(id);}
 function text(v){return String(v===undefined||v===null?'':v);}
@@ -236,13 +244,29 @@ function load(){
   try{master=JSON.parse(localStorage.getItem(MASTER_KEY)||'{}');}catch(e){master={};}
   if(!master||typeof master!=='object')master={};
   if(!Array.isArray(master.supplier))master.supplier=[];
+  if(!Array.isArray(master.store))master.store=[];
   try{docs=JSON.parse(localStorage.getItem(GR_KEY)||'[]');}catch(e){docs=[];}
   if(!Array.isArray(docs))docs=[];
+  try{stockRows=JSON.parse(localStorage.getItem(STOCK_KEY)||'[]');}catch(e){stockRows=[];}
+  if(!Array.isArray(stockRows))stockRows=[];
+  try{movements=JSON.parse(localStorage.getItem(MOVEMENT_KEY)||'[]');}catch(e){movements=[];}
+  if(!Array.isArray(movements))movements=[];
 }
 function save(){localStorage.setItem(GR_KEY,JSON.stringify(docs));}
+function saveInventory(){localStorage.setItem(STOCK_KEY,JSON.stringify(stockRows));localStorage.setItem(MOVEMENT_KEY,JSON.stringify(movements));}
 function supplierKey(s){return text(s&&(s.code||s.name)).trim();}
 function supplierLabel(s){var c=text(s&&s.code).trim(),n=text(s&&s.name).trim();return c&&n?c+' - '+n:(n||c);}
 function suppliers(){return master.supplier.filter(function(s){return !s.status||text(s.status).toUpperCase()==='ACTIVE';});}
+function storeKey(s){return text(s&&(s.code||s.name)).trim();}
+function storeLabel(s){var c=text(s&&s.code).trim(),n=text(s&&s.name).trim();return c&&n?c+' - '+n:(n||c);}
+function stores(){return master.store.filter(function(s){return !s.status||text(s.status).toUpperCase()==='ACTIVE';});}
+function renderStore(selected){
+  var select=el('grStore'),html='<option value="">-- PILIH STORE --</option>';
+  stores().forEach(function(s){html+='<option value="'+esc(storeKey(s))+'">'+esc(storeLabel(s))+'</option>';});
+  select.innerHTML=html;select.value=selected||'';
+  if(stores().length===0){el('storeWarning').textContent='Store belum ditemukan di Master Global. Tambahkan KODE STORE terlebih dahulu.';el('storeWarning').classList.remove('hidden');}
+  else el('storeWarning').classList.add('hidden');
+}
 
 function renderSupplier(selected){
   var select=el('grSupplier'),html='<option value="">-- PILIH SUPPLIER --</option>';
@@ -256,13 +280,13 @@ function show(view){
   el(view).classList.remove('hidden');
 }
 function showForm(){
-  show('formView');renderSupplier(current?current.supplier:'');
+  show('formView');renderStore(current?current.storeCode:'');renderSupplier(current?current.supplier:'');
   el('grDate').value=current&&current.date?current.date:new Date().toISOString().slice(0,10);
   el('grPL').value=current&&current.plNo?current.plNo:'';
   el('grNote').value=current&&current.note?current.note:'';
 }
 function newGR(){
-  current={id:'GR-'+Date.now(),date:new Date().toISOString().slice(0,10),supplier:'',supplierName:'',plNo:'',note:'',items:[],status:'DRAFT',createdAt:new Date().toISOString()};
+  current={id:'GR-'+Date.now(),date:new Date().toISOString().slice(0,10),storeCode:'',storeName:'',supplier:'',supplierName:'',plNo:'',note:'',items:[],status:'DRAFT',createdAt:new Date().toISOString()};
   showForm();
 }
 function backToList(){current=null;load();show('listView');renderList();}
@@ -292,12 +316,12 @@ function deleteDraft(id){
 
 function renderList(){
   var body=el('listBody'),q=text(el('search').value).toLowerCase().trim();
-  var rows=docs.filter(function(d){return (text(d.plNo)+' '+text(d.supplierName)+' '+text(d.date)).toLowerCase().indexOf(q)!==-1;});
-  if(!rows.length){body.innerHTML='<tr><td colspan="6" class="empty">Belum ada Goods Receiving. Tekan NEW GOODS RECEIVING untuk membuat transaksi baru.</td></tr>';return;}
+  var rows=docs.filter(function(d){return (text(d.plNo)+' '+text(d.storeCode)+' '+text(d.storeName)+' '+text(d.supplierName)+' '+text(d.date)).toLowerCase().indexOf(q)!==-1;});
+  if(!rows.length){body.innerHTML='<tr><td colspan="7" class="empty">Belum ada Goods Receiving. Tekan NEW GOODS RECEIVING untuk membuat transaksi baru.</td></tr>';return;}
   body.innerHTML='';
   rows.forEach(function(d){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+esc(d.date||'-')+'</td><td>'+esc(d.supplierName||'-')+'</td><td><b>'+esc(d.plNo||'-')+'</b></td><td>'+esc(d.note||'-')+'</td><td><span class="status">'+esc(d.status||'DRAFT')+'</span></td><td></td>';
+    tr.innerHTML='<td>'+esc(d.date||'-')+'</td><td>'+esc(d.storeName||d.storeCode||'-')+'</td><td>'+esc(d.supplierName||'-')+'</td><td><b>'+esc(d.plNo||'-')+'</b></td><td>'+esc(d.note||'-')+'</td><td><span class="status">'+esc(d.status||'DRAFT')+'</span></td><td></td>';
     var editBtn=document.createElement('button');editBtn.type='button';editBtn.textContent='EDIT';editBtn.addEventListener('click',function(){openDoc(d.id);});
     tr.lastChild.appendChild(editBtn);
     if(text(d.status).toUpperCase().indexOf('POSTED')===-1){
@@ -314,17 +338,18 @@ function persistCurrent(){
 }
 function saveDraft(){
   if(!current)return;
-  var date=el('grDate').value,supplier=el('grSupplier').value,pl=el('grPL').value.trim(),note=el('grNote').value.trim();
-  if(!date||!supplier||!pl){alert('Tanggal, Supplier, dan Nomor Packing List wajib diisi.');return;}
+  var date=el('grDate').value,store=el('grStore').value,supplier=el('grSupplier').value,pl=el('grPL').value.trim(),note=el('grNote').value.trim();
+  if(!date||!store||!supplier||!pl){alert('Tanggal, Store, Supplier, dan Nomor Packing List wajib diisi.');return;}
+  var storeLabelValue=store;stores().forEach(function(s){if(storeKey(s)===store)storeLabelValue=storeLabel(s);});
   var label=supplier;suppliers().forEach(function(s){if(supplierKey(s)===supplier)label=supplierLabel(s);});
-  current.date=date;current.supplier=supplier;current.supplierName=label;current.plNo=pl;current.note=note;
+  current.date=date;current.storeCode=store;current.storeName=storeLabelValue;current.supplier=supplier;current.supplierName=label;current.plNo=pl;current.note=note;
   current.items=Array.isArray(current.items)?current.items:[];current.status='DRAFT';current.updatedAt=new Date().toISOString();
   persistCurrent();showImport();
 }
 function showImport(){
   if(!current)return;
   show('importView');
-  el('importSub').textContent='PL '+current.plNo+' • '+current.supplierName;
+  el('importSub').textContent='STORE '+(current.storeName||current.storeCode)+' • PL '+current.plNo+' • '+current.supplierName;
   renderManualProducts();
   renderImport();
 }
@@ -449,7 +474,7 @@ function showScan(){
   if(!current||!Array.isArray(current.items)||!current.items.length)return;
   current.items.forEach(function(it){if(!isFinite(Number(it.scanQty)))it.scanQty=0;});
   show('scanView');
-  el('scanSub').textContent='PL '+current.plNo+' • '+current.supplierName+' • Scan dengan scanner atau ketik barcode.';
+  el('scanSub').textContent='STORE '+(current.storeName||current.storeCode)+' • PL '+current.plNo+' • '+current.supplierName+' • Scan dengan scanner atau ketik barcode.';
   renderScan();
   setTimeout(function(){el('scanBarcode').focus();},50);
 }
@@ -513,14 +538,48 @@ function resetScan(){
 }
 function postGoodsReceiving(){
   if(!current||!Array.isArray(current.items)||!current.items.length)return;
+  if(text(current.status).toUpperCase()==='POSTED'){
+    scanNotice('Goods Receiving ini sudah POSTING. Stok tidak akan ditambahkan dua kali.',true);
+    return;
+  }
+  if(!text(current.storeCode).trim()){
+    scanNotice('Store belum dipilih. Kembali ke header dan pilih Store terlebih dahulu.',false);
+    return;
+  }
   var allBalance=current.items.every(function(it){return (Number(it.expectedQty)||0)===(Number(it.scanQty)||0);});
   if(!allBalance){scanNotice('Belum bisa POSTING. Semua Qty Scan harus sama dengan Qty PL dan Balance harus 0.',false);return;}
-  if(!confirm('POSTING Goods Receiving PL '+current.plNo+'? Setelah POSTING, transaksi ini tidak boleh dihapus dari Draft.'))return;
+  if(!confirm('POSTING Goods Receiving PL '+current.plNo+' ke Store '+current.storeCode+'? Setelah POSTING, stok Store akan bertambah dan transaksi tidak boleh dihapus dari Draft.'))return;
+  load();
+  var now=new Date().toISOString();
+  current.items.forEach(function(it){
+    var qty=Number(it.scanQty)||0;
+    var sku=text(it.sku).trim();
+    var barcode=text(it.barcode).trim();
+    var key=current.storeCode+'|'+(sku||barcode);
+    var row=null;
+    for(var i=0;i<stockRows.length;i++){
+      if(text(stockRows[i].key)===key){row=stockRows[i];break;}
+    }
+    if(!row){
+      row={key:key,storeCode:current.storeCode,storeName:current.storeName,sku:sku,barcode:barcode,qtyOnHand:0,updatedAt:null};
+      stockRows.push(row);
+    }
+    row.qtyOnHand=(Number(row.qtyOnHand)||0)+qty;
+    row.updatedAt=now;
+    movements.unshift({
+      id:'MOV-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),
+      date:current.date||now.slice(0,10),timestamp:now,type:'GOODS RECEIVING',
+      storeCode:current.storeCode,storeName:current.storeName,
+      sku:sku,barcode:barcode,qtyIn:qty,qtyOut:0,balanceAfter:row.qtyOnHand,
+      referenceId:current.id,plNo:current.plNo,supplier:current.supplierName
+    });
+  });
+  saveInventory();
   current.status='POSTED';
-  current.postedAt=new Date().toISOString();
-  current.updatedAt=new Date().toISOString();
+  current.postedAt=now;
+  current.updatedAt=now;
   persistCurrent();
-  scanNotice('Goods Receiving berhasil POSTING. PL sudah balance 0.',true);
+  scanNotice('Goods Receiving berhasil POSTING ke Store '+current.storeCode+'. Stok Store sudah bertambah dan Stock Movement sudah tercatat.',true);
   renderScan();
 }
 function continueScan(){if(!current||!current.items||!current.items.length)return;showScan();}
