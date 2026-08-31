@@ -1,12 +1,16 @@
-# SYSTEMQ v1.2
+# SYSTEMQ v1.4 — MASTER COMPLETE
 
-Update:
-- First Time Company Setup
-- First Store Setup
-- Master Store Management
-- Store Code + Store Name + Status
-- Add/Edit Store
-- Active Store Context
-- Multi-store foundation
+Fitur yang dapat dieksekusi:
+- Store: ADD, UPDATE, DELETE, EXPORT CSV (Excel compatible)
+- Guide: ADD, UPDATE, DELETE, EXPORT
+- Brand: ADD, UPDATE, DELETE, EXPORT
+- Spare: ADD, UPDATE, DELETE, EXPORT
+- Warna: ADD, UPDATE, DELETE, EXPORT
+- Kolom Size: ADD, UPDATE, DELETE, EXPORT
+- Master Barang: Register, Update, Delete, Update Diskon, Import CSV, Update New Master, Export
+- Search
+- Pilih baris untuk UPDATE/DELETE
+- Penyimpanan sementara menggunakan localStorage browser
 
-Data masih prototype/browser memory. Supabase belum terhubung.
+Catatan:
+Versi ini belum dihubungkan ke Supabase. Setelah struktur MASTER disetujui, data dapat dipindahkan ke Supabase tanpa mengubah konsep menu.

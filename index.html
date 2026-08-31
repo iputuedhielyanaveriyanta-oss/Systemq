@@ -3,108 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SYSTEMQ — Retail Management System</title>
-<link rel="stylesheet" href="css/style.css">
+<title>SYSTEMQ</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="setupScreen" class="setup-screen hidden">
-  <div class="setup-card">
-    <div class="brand"><h1>SYSTEM<span>Q</span></h1><p>FIRST TIME SETUP</p></div>
-    <div class="stepper"><span class="step active">1 COMPANY</span><span class="step">2 STORE</span><span class="step">3 READY</span></div>
-    <div id="companySetup">
-      <h2>Setup Company</h2><p class="muted">Masukkan identitas perusahaan terlebih dahulu.</p>
-      <label>Nama Perusahaan</label><input id="companyName" placeholder="Nama perusahaan">
-      <label>Jenis Bisnis</label><select id="businessType"><option>Retail</option><option>Fashion Retail</option><option>General Retail</option></select>
-      <button class="primary" onclick="saveCompany()">LANJUTKAN</button>
-    </div>
-    <div id="firstStoreSetup" class="hidden">
-      <h2>Tambah Store Pertama</h2><p class="muted">Master barang akan digunakan bersama oleh seluruh store.</p>
-      <label>Kode Store</label><input id="firstStoreCode" placeholder="Contoh: KTA01">
-      <label>Nama Store</label><input id="firstStoreName" placeholder="Nama store">
-      <button class="primary" onclick="saveFirstStore()">SELESAIKAN SETUP</button>
-    </div>
-  </div>
-</div>
+<header>
+  <div class="brand"><b>SYSTEMQ</b><span>SYSTEM TOKO</span></div>
+  <nav>
+    <button onclick="openSection('master')">MASTER</button>
+    <button onclick="openSection('inventory')">INVENTORY</button>
+    <button onclick="openSection('report')">LAPORAN</button>
+    <button onclick="openSection('finance')">FINANCE & AKUNTING</button>
+  </nav>
+</header>
 
-<section id="loginScreen" class="login-screen">
-  <div class="login-card">
-    <div class="brand"><h1>SYSTEM<span>Q</span></h1><p>RETAIL MANAGEMENT SYSTEM</p></div>
-    <label>Username</label><input id="username" placeholder="Masukkan username">
-    <label>Password</label><input id="password" type="password" placeholder="Masukkan password">
-    <button class="primary" onclick="login()">LOGIN</button>
-    <button class="link-btn" onclick="startSetup()">Demo Setup System</button>
+<main>
+<section id="master" class="section">
+  <div class="page-head">
+    <div><h1>MASTER</h1><p>Kelola seluruh data dasar sistem toko.</p></div>
+    <div class="store-pill">🏪 <span id="storeContext">BELUM PILIH STORE</span></div>
+  </div>
+
+  <div class="tabs" id="masterTabs">
+    <button data-type="store" onclick="selectMaster('store')">STORE</button>
+    <button data-type="guide" onclick="selectMaster('guide')">GUIDE</button>
+    <button data-type="brand" onclick="selectMaster('brand')">BRAND</button>
+    <button data-type="spare" onclick="selectMaster('spare')">SPARE</button>
+    <button data-type="color" onclick="selectMaster('color')">WARNA</button>
+    <button data-type="size" onclick="selectMaster('size')">KOLOM SIZE</button>
+    <button data-type="product" onclick="selectMaster('product')">MASTER BARANG</button>
+  </div>
+
+  <div class="toolbar">
+    <button class="primary" onclick="addRecord()">＋ ADD</button>
+    <button onclick="editSelected()">✎ UPDATE</button>
+    <button class="danger" onclick="deleteSelected()">🗑 DELETE</button>
+    <button onclick="exportExcel()">⇩ EXPORT EXCEL</button>
+    <button onclick="closeMaster()">← KELUAR</button>
+  </div>
+
+  <div id="specialProductTools" class="special-tools hidden">
+    <button onclick="showProducts()">📦 BARANG</button>
+    <button class="primary" onclick="addRecord()">＋ REGISTER BARANG</button>
+    <button class="danger" onclick="deleteSelected()">🗑 DELETE</button>
+    <button onclick="bulkDiscount()">% UPDATE DISKON</button>
+    <label class="filebtn">⇧ IMPORT EXCEL<input id="importFile" type="file" accept=".csv,text/csv" onchange="importCSV(event)"></label>
+    <button onclick="updateNewMaster()">↻ UPDATE NEW MASTER</button>
+  </div>
+
+  <div class="tools">
+    <input id="searchInput" placeholder="Cari data..." oninput="renderTable()">
+    <span id="counter"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
   </div>
 </section>
 
-<div id="app" class="app hidden">
-  <aside class="sidebar">
-    <div class="logo">SYSTEM<span>Q</span></div>
-    <nav>
-      <button class="nav active" onclick="showPage('home',this)">⌂ <span>MENU UTAMA</span></button>
-      <button class="nav" onclick="showPage('master',this)">▣ <span>MASTER</span></button>
-      <button class="nav" onclick="showPage('inventory',this)">▤ <span>INVENTORY</span></button>
-      <button class="nav" onclick="showPage('cashier',this)">🛒 <span>KASIR</span></button>
-      <button class="nav" onclick="showPage('reports',this)">▥ <span>LAPORAN</span></button>
-      <button class="nav finance" onclick="showPage('finance',this)">🔒 <span>FINANCE & ACCOUNTING</span></button>
-    </nav>
-  </aside>
-  <main>
-    <header class="topbar">
-      <b id="crumb">MENU UTAMA</b>
-      <div class="header-right">
-        <button class="store-context" onclick="showPage('stores')">🏪 <b id="activeStoreCode">STORE</b> — <span id="activeStoreName">Belum dipilih</span> ▾</button>
-        <span>👤 <b id="userLabel">ADMIN</b></span>
-      </div>
-    </header>
+<section id="inventory" class="section hidden">
+  <h1>INVENTORY</h1>
+  <div class="coming">Tahap berikutnya: stok per Store.<br><small>Master barang sudah disiapkan untuk digunakan bersama semua store.</small></div>
+</section>
 
-    <section id="home" class="page">
-      <div class="center"><h1>Selamat datang di SYSTEMQ</h1><p>Satu sistem untuk seluruh operasional perusahaan dan multi-store.</p>
-      <div class="quick-grid">
-        <div class="quick" onclick="showPage('stores')">🏪<b>STORE MANAGEMENT</b><small>Kelola cabang perusahaan</small></div>
-        <div class="quick" onclick="showPage('inventory')">📦<b>INVENTORY</b><small>Stok per store</small></div>
-        <div class="quick" onclick="showPage('cashier')">🛒<b>KASIR</b><small>Transaksi store aktif</small></div>
-      </div></div>
-    </section>
+<section id="report" class="section hidden">
+  <h1>LAPORAN</h1><div class="coming">Modul laporan akan terhubung setelah Inventory dan Kasir selesai.</div>
+</section>
 
-    <section id="master" class="page hidden">
-      <h1>MASTER</h1><p class="muted">Master data global perusahaan</p>
-      <div class="grid">
-        <div class="tile">📦<b>PRODUK</b><small>Satu master untuk seluruh store</small></div>
-        <div class="tile">🏷️<b>BRAND</b><small>Master brand</small></div>
-        <div class="tile">📁<b>CATEGORY</b><small>Kategori produk</small></div>
-        <div class="tile" onclick="showPage('stores')">🏪<b>STORE</b><small>Kode & nama store</small></div>
-        <div class="tile">🚚<b>SUPPLIER</b><small>Master supplier</small></div>
-        <div class="tile">👤<b>USER</b><small>User & akses</small></div>
-      </div>
-    </section>
+<section id="finance" class="section hidden">
+  <h1>FINANCE & AKUNTING</h1>
+  <div class="coming">Akses modul ini nanti dilindungi kode rahasia sesuai rencana SYSTEMQ.</div>
+</section>
+</main>
 
-    <section id="stores" class="page hidden">
-      <div class="title-row"><div><h1>MASTER / STORE</h1><p class="muted">Kelola seluruh cabang/store perusahaan.</p></div><button class="btn orange" onclick="openStoreModal()">+ TAMBAH STORE</button></div>
-      <div class="company-bar">🏢 <b id="companyDisplay">COMPANY BELUM DISETUP</b><button onclick="editCompany()">Edit Company</button></div>
-      <div class="table-card"><table><thead><tr><th>KODE STORE</th><th>NAMA STORE</th><th>STATUS</th><th>AKSI</th></tr></thead><tbody id="storeRows"></tbody></table></div>
-      <div class="info-card"><b>STRUKTUR SYSTEMQ</b><p>Master Produk bersifat global. Setiap store hanya memiliki saldo stok masing-masing berdasarkan kombinasi <b>Product + Store</b>.</p></div>
-    </section>
-
-    <section id="inventory" class="page hidden"><h1>INVENTORY</h1><p class="muted">Tahap berikutnya: saldo stok per store.</p><div class="placeholder">📦 INVENTORY MODULE<br><small>Master Produk Global → Stock Balance per Store</small></div></section>
-    <section id="cashier" class="page hidden"><h1>KASIR</h1><p class="muted">Transaksi akan otomatis menggunakan Store aktif.</p><div class="placeholder">🛒 POS / KASIR<br><small id="cashierStore">Pilih store terlebih dahulu</small></div></section>
-    <section id="reports" class="page hidden"><h1>LAPORAN</h1><div class="placeholder">📊 REPORTING MODULE</div></section>
-    <section id="finance" class="page hidden"><h1>FINANCE & ACCOUNTING 🔒</h1><div class="placeholder">🔒 AREA TERPROTEKSI</div></section>
-  </main>
+<div id="modalBg" class="modal-bg hidden">
+  <div class="modal">
+    <div class="modal-head"><h2 id="modalTitle">Tambah Data</h2><button class="x" onclick="closeModal()">×</button></div>
+    <form id="recordForm" onsubmit="saveRecord(event)"></form>
+    <div class="modal-actions"><button type="button" onclick="closeModal()">BATAL</button><button class="primary" type="submit" form="recordForm">SIMPAN</button></div>
+  </div>
 </div>
 
-<div id="storeModal" class="modal-bg hidden"><div class="modal"><h2 id="storeModalTitle">Tambah Store</h2>
-<label>Kode Store</label><input id="storeCode" placeholder="Contoh: KTA01">
-<label>Nama Store</label><input id="storeName" placeholder="Nama store">
-<label>Status</label><select id="storeStatus"><option>ACTIVE</option><option>INACTIVE</option></select>
-<div class="modal-actions"><button class="btn light" onclick="closeStoreModal()">BATAL</button><button class="btn orange" onclick="saveStore()">SIMPAN</button></div>
-</div></div>
-
-<div id="companyModal" class="modal-bg hidden"><div class="modal"><h2>Edit Company</h2>
-<label>Nama Perusahaan</label><input id="editCompanyName">
-<label>Jenis Bisnis</label><select id="editBusinessType"><option>Retail</option><option>Fashion Retail</option><option>General Retail</option></select>
-<div class="modal-actions"><button class="btn light" onclick="closeCompanyModal()">BATAL</button><button class="btn orange" onclick="updateCompany()">SIMPAN</button></div>
-</div></div>
-
-<script src="js/app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
