@@ -133,16 +133,6 @@ function setType(value) {
   render();
 }
 
-
-function editSelectedRecord() {
-  if (selectedIndex === null || selectedIndex === undefined) {
-    alert('Pilih data terlebih dahulu, lalu tekan EDIT.');
-    return;
-  }
-  editingIndex = selectedIndex;
-  openForm();
-}
-
 function render() {
   const searchValue = (($('search') && $('search').value) || '').toLowerCase().trim();
   const rows = db[currentType].filter(record =>
@@ -606,29 +596,3 @@ document.addEventListener('DOMContentLoaded', () => {
   $('form').addEventListener('submit', save);
   setType('store');
 });
-
-function normalizeMasterActionButtons() {
-  document.querySelectorAll('button').forEach(btn => {
-    const t = (btn.textContent || '').trim().toUpperCase();
-    if (t === 'UPDATE') {
-      btn.textContent = '✏ EDIT';
-      btn.onclick = editSelectedRecord;
-    }
-  });
-  document.querySelectorAll('button').forEach(btn => {
-    const t = (btn.textContent || '').trim().toUpperCase();
-    if (t === 'ADD' || t === '+ ADD' || t === 'EDIT' || t === '✏ EDIT' || t === 'DELETE' || t === '🗑 DELETE') {
-      const parent = btn.parentElement;
-      if (parent && !parent.classList.contains('master-actions')) {
-        const siblings = [...parent.querySelectorAll('button')].filter(b => {
-          const x=(b.textContent||'').trim().toUpperCase();
-          return ['ADD','+ ADD','EDIT','✏ EDIT','UPDATE','DELETE','🗑 DELETE'].includes(x);
-        });
-        if (siblings.length >= 2) parent.classList.add('master-actions');
-      }
-    }
-  });
-}
-
-
-setTimeout(normalizeMasterActionButtons, 0);

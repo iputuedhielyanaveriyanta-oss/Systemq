@@ -25,33 +25,28 @@
 }
 </style>
 
-<style id="master-action-button-fix">
-.toolbar-actions,.action-buttons,.master-actions{
+<style id="safe-toolbar-layout">
+.toolbar{
   display:grid!important;
   grid-template-columns:repeat(auto-fit,minmax(118px,1fr))!important;
-  gap:10px!important;
-  width:100%!important;
+  gap:9px!important;
   align-items:stretch!important;
 }
-.toolbar-actions button,.action-buttons button,.master-actions button{
-  width:100%!important;
+.toolbar > button,.toolbar > label{
   min-height:44px!important;
   height:44px!important;
-  padding:0 12px!important;
+  box-sizing:border-box!important;
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
-  white-space:nowrap!important;
-  box-sizing:border-box!important;
+  padding:0 12px!important;
+  margin:0!important;
+  width:100%!important;
 }
+.toolbar > label input[type=file]{display:none!important}
 @media(max-width:600px){
-  .toolbar-actions,.action-buttons,.master-actions{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-    gap:8px!important;
-  }
-  .toolbar-actions button,.action-buttons button,.master-actions button{
-    min-height:42px!important;height:42px!important;font-size:14px!important;
-  }
+  .toolbar{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .toolbar > button,.toolbar > label{min-height:42px!important;height:42px!important;font-size:14px!important}
 }
 </style>
 </head><body>
@@ -59,7 +54,7 @@
 <main>
 <section id="master"><h1>MASTER GLOBAL</h1><p>Kelola seluruh data master yang digunakan bersama oleh semua store.</p>
 <div class="filter"><select id="type" onchange="setType(this.value)"><option value="store">STORE</option><option value="guide">GUIDE</option><option value="supplier">SUPPLIER</option><option value="brand">BRAND</option><option value="spare">SPARE</option><option value="color">WARNA</option><option value="size">KOLOM SIZE</option><option value="product">MASTER BARANG</option></select></div>
-<div class="toolbar"><button class="orange" onclick="add()">＋ ADD</button><button onclick="edit()">✎ UPDATE</button><button class="red" onclick="del()">🗑 DELETE</button><button onclick="exportData()">⇩ EXPORT EXCEL</button><button onclick="alert('Keluar dari '+title())">← KELUAR</button></div>
+<div class="toolbar"><button class="orange" onclick="add()">＋ ADD</button><button onclick="edit()">✏ EDIT</button><button class="red" onclick="del()">🗑 DELETE</button><button onclick="exportData()">⇩ EXPORT EXCEL</button><button onclick="alert('Keluar dari '+title())">← KELUAR</button></div>
 <div id="productTools" class="toolbar special hidden"><button>📦 BARANG</button><button class="orange" onclick="add()">＋ REGISTER BARANG</button><button class="red" onclick="del()">🗑 DELETE</button><button onclick="discount()">% UPDATE DISKON</button><label>⇧ IMPORT EXCEL<input type="file" accept=".csv" onchange="importCSV(event)"></label><button onclick="alert('Master diperbarui')">↻ UPDATE NEW MASTER</button></div>
 <input id="search" placeholder="Cari data..." oninput="render()"><b id="count"></b><h3 id="tableTitle"></h3>
 <div class="table"><table><thead id="head"></thead><tbody id="body"></tbody></table></div></section>
