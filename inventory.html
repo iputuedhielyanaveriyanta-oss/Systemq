@@ -20,7 +20,8 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
 .importBox{border:2px dashed #cfd6db;border-radius:12px;padding:22px;text-align:center;background:#fafbfc}.fileInput{display:none}.fileLabel{display:inline-block;background:#ee952e;color:#fff;border-radius:9px;padding:12px 16px;font-weight:800;cursor:pointer}.fileName{margin-top:10px;color:#6d7780;font-size:13px}
 .summary{display:flex;gap:12px;margin:18px 0}.summary>div{flex:1;border:1px solid #e2e7eb;border-radius:10px;padding:14px}.summary b{display:block;font-size:24px}.summary span{font-size:11px;color:#6d7780;font-weight:800}
 .ok{color:#18864b;font-weight:800}
-@media(max-width:700px){.topbar,.pageHead{flex-direction:column;align-items:flex-start}main{padding:14px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary{flex-direction:column}}
+.manualBox{margin:18px 0;border:1px solid #e1e6ea;border-radius:12px;padding:16px;background:#fafbfc}.manualHead{display:flex;justify-content:space-between;align-items:center;gap:12px}.manualHead h3{margin:0 0 4px;font-size:16px}.manualHead p{margin:0;color:#71808a;font-size:13px}.manualForm{display:grid;grid-template-columns:minmax(0,1fr)150px auto;gap:12px;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid #e5e9ec}.manualForm .field{min-width:0}.manualForm select{margin-top:8px}.manualQty input{min-height:46px}.manualAdd button{min-height:46px;white-space:nowrap}.manualAdd{display:flex}.manualHead button{white-space:nowrap}
+@media(max-width:700px){.topbar,.pageHead{flex-direction:column;align-items:flex-start}main{padding:14px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary{flex-direction:column}.manualHead{align-items:flex-start;flex-direction:column}.manualForm{grid-template-columns:1fr}.manualAdd button{width:100%}}
 
 </style>
 </head>
@@ -91,6 +92,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
     <div id="supplierWarning" class="notice hidden"></div>
     <div class="actions">
       <button id="cancelBtn" type="button">BATAL</button>
+      <button id="deleteCurrentBtn" type="button">HAPUS DRAFT / PL CANCEL</button>
       <button id="saveBtn" class="orange" type="button">SIMPAN & LANJUT IMPORT PL</button>
     </div>
   </div>
@@ -124,6 +126,31 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
       <div><b id="importQty">0</b><span>TOTAL QTY</span></div>
     </div>
 
+    <div class="manualBox">
+      <div class="manualHead">
+        <div>
+          <h3>TAMBAH BARANG MANUAL</h3>
+          <p>Untuk PL dengan sedikit SKU, pilih langsung dari Master Barang lalu ketik Qty.</p>
+        </div>
+        <button id="toggleManualBtn" type="button">＋ TAMBAH MANUAL</button>
+      </div>
+      <div id="manualForm" class="manualForm hidden">
+        <div class="field">
+          <label>PILIH MASTER BARANG</label>
+          <input id="manualSearch" type="search" placeholder="Cari SKU, nama barang, atau barcode...">
+          <select id="manualProduct"></select>
+          <small id="manualProductInfo">Pilih barang dari Master Global.</small>
+        </div>
+        <div class="field manualQty">
+          <label>QTY PL</label>
+          <input id="manualQty" type="number" min="1" step="1" placeholder="Contoh: 1">
+        </div>
+        <div class="manualAdd">
+          <button id="addManualBtn" class="orange" type="button">＋ TAMBAHKAN KE PL</button>
+        </div>
+      </div>
+    </div>
+
     <div class="tableWrap">
       <table>
         <thead><tr>
@@ -136,6 +163,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
     </div>
 
     <div class="actions">
+      <button id="deleteCurrentImportBtn" type="button">HAPUS DRAFT / PL CANCEL</button>
       <button id="replaceImportBtn" type="button">GANTI FILE</button>
       <button id="continueScanBtn" class="orange" type="button" disabled>LANJUT KE SCAN BARANG →</button>
     </div>
@@ -194,6 +222,24 @@ function openDoc(id){
   if(!current){alert('Data Goods Receiving tidak ditemukan.');return;}
   if(Array.isArray(current.items)&&current.items.length)showImport();else showForm();
 }
+function deleteDraft(id){
+  load();
+  var doc=null;
+  for(var i=0;i<docs.length;i++){if(docs[i].id===id){doc=docs[i];break;}}
+  if(!doc){alert('Goods Receiving tidak ditemukan.');return;}
+  var st=text(doc.status).toUpperCase();
+  if(st.indexOf('POSTED')!==-1){
+    alert('Goods Receiving yang sudah POSTING tidak dapat dihapus dari sini.');
+    return;
+  }
+  var label=doc.plNo?('PL '+doc.plNo):'Goods Receiving ini';
+  if(!confirm('Hapus '+label+' yang berstatus Draft/Cancel? Data header dan Packing List akan dihapus permanen.'))return;
+  docs=docs.filter(function(d){return d.id!==id;});
+  save();
+  if(current&&current.id===id)current=null;
+  renderList();
+}
+
 function renderList(){
   var body=el('listBody'),q=text(el('search').value).toLowerCase().trim();
   var rows=docs.filter(function(d){return (text(d.plNo)+' '+text(d.supplierName)+' '+text(d.date)).toLowerCase().indexOf(q)!==-1;});
@@ -202,8 +248,13 @@ function renderList(){
   rows.forEach(function(d){
     var tr=document.createElement('tr');
     tr.innerHTML='<td>'+esc(d.date||'-')+'</td><td>'+esc(d.supplierName||'-')+'</td><td><b>'+esc(d.plNo||'-')+'</b></td><td>'+esc(d.note||'-')+'</td><td><span class="status">'+esc(d.status||'DRAFT')+'</span></td><td></td>';
-    var btn=document.createElement('button');btn.type='button';btn.textContent='EDIT';btn.addEventListener('click',function(){openDoc(d.id);});
-    tr.lastChild.appendChild(btn);body.appendChild(tr);
+    var editBtn=document.createElement('button');editBtn.type='button';editBtn.textContent='EDIT';editBtn.addEventListener('click',function(){openDoc(d.id);});
+    tr.lastChild.appendChild(editBtn);
+    if(text(d.status).toUpperCase().indexOf('POSTED')===-1){
+      var delBtn=document.createElement('button');delBtn.type='button';delBtn.textContent='HAPUS';delBtn.style.marginLeft='6px';delBtn.addEventListener('click',function(){deleteDraft(d.id);});
+      tr.lastChild.appendChild(delBtn);
+    }
+    body.appendChild(tr);
   });
 }
 function persistCurrent(){
@@ -224,6 +275,7 @@ function showImport(){
   if(!current)return;
   show('importView');
   el('importSub').textContent='PL '+current.plNo+' • '+current.supplierName;
+  renderManualProducts();
   renderImport();
 }
 function normKey(k){return text(k).toLowerCase().replace(/[\s_\-\.]/g,'');}
@@ -246,6 +298,65 @@ function parseRows(rows){
   });
   return {items:items,errors:errors};
 }
+function productLabel(p){
+  var sku=text(p&&p.sku).trim(),name=text(p&&p.name).trim(),barcode=text(p&&p.barcode).trim();
+  return (sku||'-')+' • '+(name||'-')+(barcode?' • '+barcode:'');
+}
+function getProducts(){
+  return Array.isArray(master.product)?master.product.filter(function(p){return !p.status||text(p.status).toUpperCase()==='ACTIVE';}):[];
+}
+function renderManualProducts(){
+  var select=el('manualProduct');if(!select)return;
+  var q=text(el('manualSearch').value).toLowerCase().trim();
+  var rows=getProducts().filter(function(p){
+    var hay=(text(p.sku)+' '+text(p.name)+' '+text(p.barcode)).toLowerCase();
+    return !q||hay.indexOf(q)!==-1;
+  });
+  var html='<option value="">-- PILIH BARANG DARI MASTER --</option>';
+  rows.forEach(function(p,i){
+    html+='<option value="'+esc(text(p.barcode).trim())+'" data-index="'+i+'">'+esc(productLabel(p))+'</option>';
+  });
+  select.innerHTML=html;
+  el('manualProductInfo').textContent=rows.length?rows.length+' barang ditemukan dari Master Barang.':'Barang tidak ditemukan.';
+}
+function selectedManualProduct(){
+  var barcode=text(el('manualProduct').value).trim();
+  var products=getProducts();
+  for(var i=0;i<products.length;i++){
+    if(text(products[i].barcode).trim()===barcode)return products[i];
+  }
+  return null;
+}
+function updateManualInfo(){
+  var p=selectedManualProduct();
+  el('manualProductInfo').textContent=p?('SKU: '+text(p.sku||'-')+' | Barcode: '+text(p.barcode||'-')):'Pilih barang dari Master Global.';
+}
+function addManualItem(){
+  if(!current)return;
+  var p=selectedManualProduct();
+  var qty=Number(el('manualQty').value);
+  if(!p){alert('Pilih Master Barang terlebih dahulu.');return;}
+  if(!text(p.barcode).trim()){alert('Barang ini belum memiliki Barcode di Master Barang.');return;}
+  if(!isFinite(qty)||qty<=0||Math.floor(qty)!==qty){alert('Qty PL harus berupa angka lebih dari 0.');return;}
+  if(!Array.isArray(current.items))current.items=[];
+  var barcode=text(p.barcode).trim(),found=null;
+  for(var i=0;i<current.items.length;i++){
+    if(text(current.items[i].barcode).trim()===barcode){found=current.items[i];break;}
+  }
+  if(found){
+    found.expectedQty=(Number(found.expectedQty)||0)+qty;
+    if(!text(found.sku).trim())found.sku=text(p.sku).trim();
+  }else{
+    current.items.push({line:current.items.length+1,barcode:barcode,sku:text(p.sku).trim(),expectedQty:qty,scanQty:0});
+  }
+  current.status='DRAFT - PL INPUT';
+  current.updatedAt=new Date().toISOString();
+  persistCurrent();renderImport();
+  el('manualQty').value='';
+  el('manualProduct').value='';
+  updateManualInfo();
+}
+
 function renderImport(){
   var body=el('importBody'),items=(current&&Array.isArray(current.items))?current.items:[];
   el('continueScanBtn').disabled=!items.length;
@@ -289,12 +400,19 @@ function bind(id,fn){var n=el(id);if(n)n.addEventListener('click',fn);}
 function init(){
   load();show('listView');renderList();
   bind('newGRMain',newGR);bind('backTop',backToList);bind('cancelBtn',backToList);bind('saveBtn',saveDraft);
+  bind('deleteCurrentBtn',function(){if(current&&current.id)deleteDraft(current.id);else backToList();});
+  bind('deleteCurrentImportBtn',function(){if(current&&current.id)deleteDraft(current.id);else backToList();});
   bind('importBack',backToList);bind('replaceImportBtn',function(){el('plFile').click();});bind('continueScanBtn',continueScan);
-  el('plFile').addEventListener('change',importFile);el('search').addEventListener('input',renderList);
+  bind('toggleManualBtn',function(){var f=el('manualForm');f.classList.toggle('hidden');if(!f.classList.contains('hidden')){renderManualProducts();el('manualSearch').focus();}});
+  bind('addManualBtn',addManualItem);
+  el('plFile').addEventListener('change',importFile);
+  el('search').addEventListener('input',renderList);
+  el('manualSearch').addEventListener('input',renderManualProducts);
+  el('manualProduct').addEventListener('change',updateManualInfo);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-<!-- GR_IMPORT_PL_VERSION_20260831_FINAL -->
+<!-- GR_IMPORT_PL_MANUAL_DELETE_DRAFT_20260831_FINAL -->
 </body>
 </html>
