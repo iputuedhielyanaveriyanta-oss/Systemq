@@ -11,7 +11,6 @@
   <div class="brand"><b>SYSTEMQ</b><small>INVENTORY • GOODS RECEIVING</small></div>
   <div class="topActions">
     <a href="./index.html">← MASTER GLOBAL</a>
-    <button id="newGRTop" class="orange" type="button">＋ NEW GOODS RECEIVING</button>
   </div>
 </header>
 
@@ -24,7 +23,6 @@
     </div>
     <button id="newGRMain" class="orange" type="button">＋ NEW GOODS RECEIVING</button>
   </div>
-
   <div class="panel">
     <input id="search" class="search" type="search" placeholder="Cari Nomor PL atau Supplier...">
     <div class="tableWrap">
@@ -53,7 +51,6 @@
       <span>1</span>
       <div><h2>HEADER GOODS RECEIVING</h2><p>Data mengikuti Packing List dari supplier.</p></div>
     </div>
-
     <div class="grid">
       <div class="field">
         <label>TANGGAL <em>*</em></label>
@@ -73,17 +70,62 @@
         <textarea id="grNote" rows="3" placeholder="Contoh: Barang datang gudang utama"></textarea>
       </div>
     </div>
-
     <div id="supplierWarning" class="notice hidden"></div>
-
     <div class="actions">
       <button id="cancelBtn" type="button">BATAL</button>
-      <button id="saveBtn" class="orange" type="button">SIMPAN DRAFT</button>
+      <button id="saveBtn" class="orange" type="button">SIMPAN & LANJUT IMPORT PL</button>
+    </div>
+  </div>
+</section>
+
+<section id="importView" class="hidden">
+  <div class="pageHead">
+    <div>
+      <h1>IMPORT PACKING LIST</h1>
+      <p id="importSub">Langkah 2: upload Excel Packing List supplier.</p>
+    </div>
+    <button id="importBack" type="button">← KEMBALI KE LIST</button>
+  </div>
+
+  <div class="panel">
+    <div class="stepTitle">
+      <span>2</span>
+      <div><h2>IMPORT EXCEL PACKING LIST</h2><p>File minimal harus berisi Barcode dan Qty. SKU dapat ikut jika tersedia.</p></div>
+    </div>
+
+    <div class="importBox">
+      <label for="plFile" class="fileLabel">📥 PILIH FILE EXCEL / CSV</label>
+      <input id="plFile" type="file" accept=".xlsx,.xls,.csv" class="fileInput">
+      <div id="fileName" class="fileName">Belum ada file dipilih.</div>
+    </div>
+
+    <div id="importMessage" class="notice hidden"></div>
+
+    <div id="importSummary" class="summary hidden">
+      <div><b id="importCount">0</b><span>BARIS PL</span></div>
+      <div><b id="importQty">0</b><span>TOTAL QTY</span></div>
+    </div>
+
+    <div class="tableWrap">
+      <table>
+        <thead><tr>
+          <th>NO.</th><th>BARCODE</th><th>SKU</th><th>QTY PL</th><th>STATUS</th>
+        </tr></thead>
+        <tbody id="importBody">
+          <tr><td colspan="5" class="empty">Belum ada Packing List yang diimport.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <button id="replaceImportBtn" type="button">GANTI FILE</button>
+      <button id="continueScanBtn" class="orange" type="button" disabled>LANJUT KE SCAN BARANG →</button>
     </div>
   </div>
 </section>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="./inventory.js"></script>
 </body>
 </html>
