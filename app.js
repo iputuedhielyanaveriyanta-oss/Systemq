@@ -1,4 +1,5 @@
-/* SYSTEMQ v18.1 DATA RECOVERY */\nconst STORAGE_KEY = 'systemq_v18_data';
+/* SYSTEMQ BUTTON FIX + DATA RECOVERY */
+const STORAGE_KEY = 'systemq_v18_data';
 const LEGACY_KEYS = ['systemq_v17_data','systemq_v16_data'];
 
 const SCHEMA = {
@@ -12,85 +13,58 @@ const SCHEMA = {
   product:{title:'MASTER BARANG',fields:[['brand','BRAND','dynamic','brand'],['supplier','SUPPLIER','dynamic','supplier'],['sku','SKU'],['name','NAMA BARANG'],['barcode','BARCODE'],['spare','SPARE','dynamic','spare'],['color','WARNA','dynamic','color'],['price','HARGA JUAL'],['discount','DISKON %'],['size','SIZE','dynamic','size'],['status','STATUS','select',['ACTIVE','INACTIVE']]]}
 };
 
-function parseStoredData(key){
-  const raw = localStorage.getItem(key);
-  if(!raw) return null;
+function parseStored(key){
   try{
-    const value = JSON.parse(raw);
-    return value && typeof value === 'object' ? value : null;
-  }catch(e){
-    return null;
-  }
+    const raw=localStorage.getItem(key);
+    const value=raw?JSON.parse(raw):null;
+    return value && typeof value==='object' ? value : null;
+  }catch(e){ return null; }
 }
-
-function normalizeDatabase(data){
-  const value = data && typeof data === 'object' ? data : {};
-  Object.keys(SCHEMA).forEach(key=>{
-    if(!Array.isArray(value[key])) value[key]=[];
-  });
-  if(!value.brandPromos || typeof value.brandPromos !== 'object') value.brandPromos={};
-  return value;
+function normalize(data){
+  const out=data && typeof data==='object' ? data : {};
+  Object.keys(SCHEMA).forEach(k=>{ if(!Array.isArray(out[k])) out[k]=[]; });
+  if(!out.brandPromos || typeof out.brandPromos!=='object') out.brandPromos={};
+  return out;
 }
-
-function recordId(record,type){
-  if(!record || typeof record !== 'object') return '';
-  if(type==='product') return String(record.sku||'').trim().toLowerCase();
-  return String(record.code||record.name||'').trim().toLowerCase();
+function recordKey(r,type){
+  if(!r || typeof r!=='object') return '';
+  return String(type==='product'?(r.sku||''):(r.code||r.name||'')).trim().toLowerCase();
 }
-
-function mergeRecordLists(current, incoming, type){
-  const out = Array.isArray(current) ? current.slice() : [];
-  const seen = new Set(out.map(item=>recordId(item,type)).filter(Boolean));
-  (Array.isArray(incoming)?incoming:[]).forEach(item=>{
-    const id = recordId(item,type);
-    if(!id || !seen.has(id)){
-      out.push(item);
-      if(id) seen.add(id);
-    }
+function mergeList(target,source,type){
+  const out=Array.isArray(target)?target.slice():[];
+  const seen=new Set(out.map(x=>recordKey(x,type)).filter(Boolean));
+  (Array.isArray(source)?source:[]).forEach(x=>{
+    const key=recordKey(x,type);
+    if(!key || !seen.has(key)){ out.push(x); if(key) seen.add(key); }
   });
   return out;
 }
-
-function mergePromoMaps(current, incoming){
-  const out = current && typeof current==='object' ? {...current} : {};
-  if(!incoming || typeof incoming!=='object') return out;
-  Object.keys(incoming).forEach(key=>{
-    const a = Array.isArray(out[key]) ? out[key].slice() : [];
-    const seen = new Set(a.map(x=>JSON.stringify(x)));
-    (Array.isArray(incoming[key])?incoming[key]:[]).forEach(item=>{
-      const sig=JSON.stringify(item);
-      if(!seen.has(sig)){ a.push(item); seen.add(sig); }
+function mergePromos(target,source){
+  const out=target && typeof target==='object'?{...target}:{};
+  if(!source || typeof source!=='object') return out;
+  Object.keys(source).forEach(k=>{
+    const arr=Array.isArray(out[k])?out[k].slice():[];
+    const seen=new Set(arr.map(x=>JSON.stringify(x)));
+    (Array.isArray(source[k])?source[k]:[]).forEach(x=>{
+      const sig=JSON.stringify(x);
+      if(!seen.has(sig)){arr.push(x);seen.add(sig);}
     });
-    out[key]=a;
+    out[k]=arr;
   });
   return out;
 }
-
-function mergeDatabase(base, incoming){
-  const target = normalizeDatabase(base);
-  const source = normalizeDatabase(incoming);
-  Object.keys(SCHEMA).forEach(type=>{
-    target[type] = mergeRecordLists(target[type],source[type],type);
-  });
-  target.brandPromos = mergePromoMaps(target.brandPromos,source.brandPromos);
-  return target;
+function mergeDb(target,source){
+  const out=normalize(target), src=normalize(source);
+  Object.keys(SCHEMA).forEach(type=>{ out[type]=mergeList(out[type],src[type],type); });
+  out.brandPromos=mergePromos(out.brandPromos,src.brandPromos);
+  return out;
 }
-
-let db = normalizeDatabase(parseStoredData(STORAGE_KEY));
-let migrated = false;
-
+let db=normalize(parseStored(STORAGE_KEY));
 for(const key of LEGACY_KEYS){
-  const legacy = parseStoredData(key);
-  if(legacy){
-    const before = JSON.stringify(db);
-    db = mergeDatabase(db,legacy);
-    if(JSON.stringify(db)!==before) migrated=true;
-  }
+  const legacy=parseStored(key);
+  if(legacy) db=mergeDb(db,legacy);
 }
-
-if(migrated || !localStorage.getItem(STORAGE_KEY)){
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
-}
+localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
 
 let currentType='store', selectedIndex=null, editingIndex=null;
 let currentBrandIndex=null, editingPromoIndex=null;
@@ -103,22 +77,15 @@ function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function brandKey(brand,index=currentBrandIndex){return brand && (brand.code||brand.name) ? String(brand.code||brand.name) : 'brand_'+index}
 
 function migrateLegacyBrandPromos(){
-  let changed=false;
   db.brand.forEach((brand,i)=>{
     const key=brandKey(brand,i);
-    if(!Array.isArray(db.brandPromos[key])){ db.brandPromos[key]=[]; changed=true; }
+    if(!Array.isArray(db.brandPromos[key])) db.brandPromos[key]=[];
     if(db.brandPromos[key].length===0 && (brand.newArrival||brand.discount||brand.margin)){
-      if(String(brand.newArrival||'').toUpperCase()==='YA'){
-        db.brandPromos[key].push({group:'',promo:'New Arrival',discount:'',margin:'',status:'ACTIVE'});
-        changed=true;
-      }
-      if(brand.discount||brand.margin){
-        db.brandPromos[key].push({group:'',promo:'Diskon '+(brand.discount||''),discount:String(brand.discount||''),margin:String(brand.margin||''),status:'ACTIVE'});
-        changed=true;
-      }
+      if(String(brand.newArrival||'').toUpperCase()==='YA') db.brandPromos[key].push({group:'',promo:'New Arrival',discount:'',margin:'',status:'ACTIVE'});
+      if(brand.discount||brand.margin) db.brandPromos[key].push({group:'',promo:'Diskon '+(brand.discount||''),discount:String(brand.discount||''),margin:String(brand.margin||''),status:'ACTIVE'});
     }
   });
-  if(changed) persist();
+  persist();
 }
 
 function show(id){document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden')); const t=$(id); if(t)t.classList.remove('hidden')}
@@ -155,7 +122,11 @@ function currentBrand(){return currentBrandIndex===null?null:db.brand[currentBra
 function currentPromoList(){const b=currentBrand();if(!b)return[];const k=brandKey(b,currentBrandIndex);if(!Array.isArray(db.brandPromos[k]))db.brandPromos[k]=[];return db.brandPromos[k]}
 function renderBrandPromos(){const list=currentPromoList();$('brandPromoBody').innerHTML=list.length?list.map((x,i)=>'<tr><td>'+esc(x.group||'-')+'</td><td>'+esc(x.promo||'-')+'</td><td>'+esc(x.discount||'-')+'</td><td>'+esc(x.margin||'-')+'</td><td>'+esc(x.status||'-')+'</td><td><button class="small" onclick="editBrandPromo('+i+')">✎ EDIT</button> <button class="small red" onclick="deleteBrandPromo('+i+')">DELETE</button></td></tr>').join(''):'<tr><td colspan="6" style="text-align:center;padding:30px;color:#77838e">Belum ada promo. Klik TAMBAH PROMO / MARGIN.</td></tr>'}
 function editCurrentBrand(){if(currentBrandIndex===null)return;$('brandDetail').classList.add('hidden');currentType='brand';selectedIndex=currentBrandIndex;editingIndex=currentBrandIndex;openForm()}
-function addBrandPromo(){editingPromoIndex=null;openBrandPromoForm()}
+function addBrandPromo(){
+  if(currentBrandIndex===null) return alert('Pilih BRAND terlebih dahulu.');
+  editingPromoIndex=null;
+  openBrandPromoForm();
+}
 function editBrandPromo(i){editingPromoIndex=i;openBrandPromoForm()}
 function openBrandPromoForm(){const list=currentPromoList();const r=editingPromoIndex===null?{group:'',promo:'',discount:'',margin:'',status:'ACTIVE'}:list[editingPromoIndex];$('modalTitle').textContent=editingPromoIndex===null?'Tambah Promo / Margin':'Edit Promo / Margin';$('form').innerHTML=`
 <div class="field"><label>KELOMPOK</label><input name="group" value="${esc(r.group||'')}" placeholder="Kosongkan bila tidak perlu"></div>
@@ -164,8 +135,8 @@ function openBrandPromoForm(){const list=currentPromoList();const r=editingPromo
 <div class="field"><label>MARGIN</label><input type="number" name="margin" value="${esc(r.margin||'')}" placeholder="Contoh: 27"></div>
 <div class="field"><label>STATUS</label><select name="status"><option ${r.status==='ACTIVE'?'selected':''}>ACTIVE</option><option ${r.status==='INACTIVE'?'selected':''}>INACTIVE</option></select></div>
 <button class="orange" type="submit">SIMPAN</button>`;
-$('form').onsubmit=saveBrandPromo;$('modal').classList.remove('hidden')}
-function saveBrandPromo(e){e.preventDefault();const fd=new FormData($('form'));const r={group:String(fd.get('group')||'').trim(),promo:String(fd.get('promo')||'').trim(),discount:String(fd.get('discount')||'').trim(),margin:String(fd.get('margin')||'').trim(),status:String(fd.get('status')||'ACTIVE')};if(!r.promo)return alert('PROMO wajib diisi.');const list=currentPromoList();if(editingPromoIndex===null)list.push(r);else list[editingPromoIndex]=r;persist();editingPromoIndex=null;$('form').onsubmit=save;closeModal();$('brandDetail').classList.remove('hidden');renderBrandPromos()}
+$('modal').classList.remove('hidden')}
+function saveBrandPromo(e){e.preventDefault();const fd=new FormData($('form'));const r={group:String(fd.get('group')||'').trim(),promo:String(fd.get('promo')||'').trim(),discount:String(fd.get('discount')||'').trim(),margin:String(fd.get('margin')||'').trim(),status:String(fd.get('status')||'ACTIVE')};if(!r.promo)return alert('PROMO wajib diisi.');const list=currentPromoList();if(editingPromoIndex===null)list.push(r);else list[editingPromoIndex]=r;persist();editingPromoIndex=null;closeModal();$('brandDetail').classList.remove('hidden');renderBrandPromos()}
 function deleteBrandPromo(i){if(!confirm('Hapus promo ini?'))return;currentPromoList().splice(i,1);persist();renderBrandPromos()}
 
 function exportData(){const rows=[currentFields().map(f=>f[1]),...db[currentType].map(r=>currentFields().map(f=>r[f[0]]||''))];const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SYSTEMQ_'+currentType.toUpperCase()+'.csv';a.click();URL.revokeObjectURL(a.href)}
@@ -173,4 +144,11 @@ function discount(){if(currentType!=='product')return alert('Fitur ini hanya unt
 function importCSV(e){const file=e.target.files&&e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const text=String(reader.result||'').replace(/^\uFEFF/,'').trim();if(!text)return alert('File kosong.');const lines=text.split(/\r?\n/).filter(Boolean);if(lines.length<2)return alert('CSV harus memiliki header dan minimal satu data.');const headers=parseCSVLine(lines.shift()).map(x=>x.trim().toLowerCase());let imported=0;lines.forEach(line=>{const vals=parseCSVLine(line),r={};currentFields().forEach(f=>{let i=headers.indexOf(f[0].toLowerCase());if(i<0)i=headers.indexOf(f[1].toLowerCase());r[f[0]]=i>=0?String(vals[i]||'').trim():''});if(Object.values(r).some(Boolean)){db[currentType].push(r);imported++}});persist();render();alert(imported+' data berhasil diimport.')};reader.readAsText(file);e.target.value=''}
 function parseCSVLine(line){const r=[];let c='',q=false;for(let i=0;i<line.length;i++){const x=line[i];if(x==='"'){if(q&&line[i+1]==='"'){c+='"';i++}else q=!q}else if(x===','&&!q){r.push(c);c=''}else c+=x}r.push(c);return r}
 
-document.addEventListener('DOMContentLoaded',()=>{migrateLegacyBrandPromos();$('form').addEventListener('submit',save);setType('store')});
+document.addEventListener('DOMContentLoaded',()=>{
+  migrateLegacyBrandPromos();
+  $('form').addEventListener('submit',(e)=>{
+    if(editingPromoIndex!==null || $('modalTitle').textContent.includes('Promo / Margin')) saveBrandPromo(e);
+    else save(e);
+  });
+  setType('store');
+});
