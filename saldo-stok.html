@@ -170,19 +170,24 @@ function activeStore(){
 
 function selectedDate(){return text(el('stockDate')&&el('stockDate').value).trim();}
 function asOfRows(){
-  var s=activeStore(), date=selectedDate(), map={};
+  var s=activeStore(), date=selectedDate(), map={}, hasMovement=false;
   if(!s.code)return [];
-  if(!date){
-    return stockRows.filter(function(r){return text(r.storeCode)===s.code;});
-  }
+
   movements.forEach(function(m){
     if(text(m.storeCode)!==s.code)return;
-    if(text(m.date)>date)return;
+    hasMovement=true;
+    if(date && text(m.date)>date)return;
     var key=text(m.sku).trim()||text(m.barcode).trim();
     if(!key)return;
     if(!map[key])map[key]={storeCode:s.code,storeName:s.name,sku:text(m.sku).trim(),barcode:text(m.barcode).trim(),qtyOnHand:0};
     map[key].qtyOnHand+=(Number(m.qtyIn)||0)-(Number(m.qtyOut)||0);
   });
+
+  /* Jika modul lama belum memiliki Stock Movement, tetap gunakan saldo stok yang sudah diposting. */
+  if(!hasMovement){
+    return stockRows.filter(function(r){return text(r.storeCode)===s.code;});
+  }
+
   return Object.keys(map).map(function(k){return map[k];});
 }
 function storeRows(){return asOfRows();}
@@ -191,17 +196,29 @@ function renderFilters(){
   var rows=storeRows(),brands=[],discounts=[];
   rows.forEach(function(r){
     var m=meta(r);
-    if(m.brand&&brands.indexOf(m.brand)===-1)brands.push(m.brand);
-    if(m.discount&&discounts.indexOf(m.discount)===-1)discounts.push(m.discount);
+    if(m.brand && brands.indexOf(m.brand)===-1)brands.push(m.brand);
+    if(m.discount!=='' && m.discount!==null && m.discount!==undefined && discounts.indexOf(m.discount)===-1)discounts.push(m.discount);
   });
   brands.sort(function(a,b){return a.localeCompare(b);});
   discounts.sort(function(a,b){return Number(a)-Number(b);});
 
   var b=el('brandFilter'),d=el('discountFilter');
   var bv=b.value,dv=d.value;
-  b.innerHTML='<option value="">SEMUA BRAND</option>'+brands.map(function(x){return '<option value="'+esc(x)+'">'+esc(x)+'</option>';}).join('');
-  d.innerHTML='<option value="">SEMUA DISKON</option>'+discounts.map(function(x){return '<option value="'+esc(x)+'">'+esc(discountLabel(x))+'</option>';}).join('');
-  b.value=bv;d.value=dv;
+
+  b.innerHTML='<option value="">SEMUA BRAND</option>';
+  brands.forEach(function(x){
+    var o=document.createElement('option');o.value=x;o.textContent=x;b.appendChild(o);
+  });
+
+  d.innerHTML='<option value="">SEMUA DISKON</option>';
+  discounts.forEach(function(x){
+    var o=document.createElement('option');o.value=x;o.textContent=discountLabel(x);d.appendChild(o);
+  });
+
+  if(Array.from(b.options).some(function(o){return o.value===bv;}))b.value=bv;
+  else b.value='';
+  if(Array.from(d.options).some(function(o){return o.value===dv;}))d.value=dv;
+  else d.value='';
 }
 
 function render(){
@@ -218,12 +235,13 @@ function render(){
   var brand=text(el('brandFilter').value);
   var discount=text(el('discountFilter').value);
 
-  var rows=storeRows().filter(function(r){
+  var allRows=storeRows();
+  var rows=allRows.filter(function(r){
     var m=meta(r);
     var hay=norm(r.barcode)+' '+norm(r.sku)+' '+norm(m.name);
-    if(q&&hay.indexOf(q)===-1)return false;
-    if(brand&&m.brand!==brand)return false;
-    if(discount&&m.discount!==discount)return false;
+    if(q && hay.indexOf(q)===-1)return false;
+    if(brand !== '' && m.brand !== brand)return false;
+    if(discount !== '' && text(m.discount) !== discount)return false;
     return true;
   }).sort(function(a,b){return norm(a.sku).localeCompare(norm(b.sku));});
 
