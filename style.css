@@ -2,20 +2,4 @@
 /* SYSTEMQ v1.6 */
 .filter select{font-weight:900;font-size:16px;letter-spacing:.4px}
 #type{min-width:260px}
-
-
-/* SYSTEMQ v1.9 - Brand promo groups */
-.brand-groups{margin:18px 0;padding:14px;border:1px solid #dce3e8;border-radius:10px;background:#fafbfc}
-.brand-groups-head,.brand-group-row{display:grid;grid-template-columns:minmax(0,1fr) 140px 90px;gap:10px;align-items:center}
-.brand-groups-head{font-size:12px;color:#596674;padding:0 0 8px}
-.brand-group-row{margin:8px 0}
-.brand-group-row input{width:100%;padding:11px;border:1px solid #ccd4db;border-radius:7px}
-.margin-input{display:flex;align-items:center;gap:6px}
-.margin-input span{font-weight:bold}
-.group-delete{padding:10px 8px;font-size:11px}
-.add-group-btn{margin-top:8px}
-@media(max-width:700px){
-  .brand-groups-head{display:none}
-  .brand-group-row{grid-template-columns:1fr 105px;gap:8px;padding:10px;border:1px solid #e3e8ec;border-radius:8px}
-  .group-delete{grid-column:1/-1;width:100%}
-}
+.small{padding:7px 10px;border-radius:7px;font-size:11px}.brand-card{width:min(1000px,100%);max-height:90vh;overflow:auto}.brand-info{background:#f7f9fa;border:1px solid #dce3e8;padding:13px;border-radius:9px;margin:10px 0 14px}.detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.detail-table{min-width:780px}@media(max-width:700px){.brand-card{padding:16px}.detail-actions button{width:100%}}
