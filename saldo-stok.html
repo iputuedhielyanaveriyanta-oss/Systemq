@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SYSTEMQ • Saldo Stok</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f5f7;font-family:Arial,sans-serif;color:#1d2730}
+.topbar{background:#18212a;color:#fff;padding:14px 4%;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand b{display:block;font-size:22px}.brand small{font-size:10px;letter-spacing:1.6px;opacity:.7}
+button,a{font:inherit;font-weight:700;border:1px solid #cfd6db;background:#fff;color:#1d2730;padding:10px 13px;border-radius:9px;cursor:pointer;text-decoration:none}
+main{max-width:1200px;margin:0 auto;padding:24px}
+.pageHead{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}
+.pageHead h1{margin:0 0 5px;font-size:24px}.pageHead p{margin:0;color:#6d7780}
+.panel{background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:18px}
+.filters{display:grid;grid-template-columns:minmax(260px,2fr) minmax(170px,1fr) minmax(150px,1fr);gap:12px;align-items:end;margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:800;margin-bottom:7px}
+input,select{width:100%;font:inherit;border:1px solid #cfd6db;border-radius:9px;padding:12px;background:#fff}
+.summary{display:flex;gap:12px;margin:0 0 14px}.summary>div{min-width:160px;border:1px solid #e2e7eb;border-radius:10px;padding:12px}
+.summary b{display:block;font-size:22px}.summary span{font-size:11px;color:#6d7780;font-weight:800}
+.tableWrap{overflow:auto;border:1px solid #e4e8eb;border-radius:10px}
+table{width:100%;min-width:930px;border-collapse:collapse}
+th,td{padding:12px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}
+th{font-size:11px;background:#f7f8f9;white-space:nowrap}
+.empty{text-align:center;color:#75808a;padding:32px}
+.stockQty{font-weight:800;font-size:14px}
+.notice{margin-bottom:14px;padding:12px;border-radius:9px;background:#fff6e9;border:1px solid #f2dfbe;font-size:13px}
+@media(max-width:700px){.topbar,.pageHead{flex-direction:column;align-items:flex-start}main{padding:14px}.filters{grid-template-columns:1fr}.summary{flex-direction:column}.summary>div{width:100%}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><b>SYSTEMQ</b><small>INVENTORY • SALDO STOK</small></div>
+  <a href="./index.html">← INVENTORY</a>
+</header>
+
+<main>
+  <div class="pageHead">
+    <div>
+      <h1>SALDO STOK</h1>
+      <p id="storeLabel">Memuat saldo stok store aktif...</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="storeNotice" class="notice"></div>
+
+    <div class="filters">
+      <div class="field">
+        <label>CARI BARANG</label>
+        <input id="search" type="search" placeholder="Cari SKU, barcode, atau nama barang...">
+      </div>
+      <div class="field">
+        <label>BRAND</label>
+        <select id="brandFilter"><option value="">SEMUA BRAND</option></select>
+      </div>
+      <div class="field">
+        <label>DISKON</label>
+        <select id="discountFilter"><option value="">SEMUA DISKON</option></select>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div><b id="skuTotal">0</b><span>SKU</span></div>
+      <div><b id="qtyTotal">0</b><span>TOTAL SALDO STOK</span></div>
+    </div>
+
+    <div class="tableWrap">
+      <table>
+        <thead><tr>
+          <th>NO.</th>
+          <th>BARCODE</th>
+          <th>SKU</th>
+          <th>NAMA BARANG</th>
+          <th>BRAND</th>
+          <th>SPARE</th>
+          <th>DISKON</th>
+          <th>SALDO STOK</th>
+        </tr></thead>
+        <tbody id="stockBody">
+          <tr><td colspan="8" class="empty">Belum ada saldo stok.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+'use strict';
+var MASTER_KEY='systemq_v17_data';
+var GR_KEY='systemq_inventory_goods_receiving_v1';
+var STOCK_KEY='systemq_inventory_stock_v1';
+
+var master={},docs=[],stockRows=[];
+
+function el(id){return document.getElementById(id);}
+function text(v){return String(v===undefined||v===null?'':v);}
+function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function norm(v){return text(v).trim().toLowerCase();}
+
+function load(){
+  try{master=JSON.parse(localStorage.getItem(MASTER_KEY)||'{}');}catch(e){master={};}
+  try{docs=JSON.parse(localStorage.getItem(GR_KEY)||'[]');}catch(e){docs=[];}
+  try{stockRows=JSON.parse(localStorage.getItem(STOCK_KEY)||'[]');}catch(e){stockRows=[];}
+  if(!master||typeof master!=='object')master={};
+  if(!Array.isArray(master.product))master.product=[];
+  if(!Array.isArray(docs))docs=[];
+  if(!Array.isArray(stockRows))stockRows=[];
+}
+
+function fieldValue(obj,names){
+  for(var i=0;i<names.length;i++){
+    var v=obj&&obj[names[i]];
+    if(v!==undefined&&v!==null&&text(v).trim()!=='')return text(v).trim();
+  }
+  return '';
+}
+
+function productFor(row){
+  var sku=norm(row.sku),barcode=norm(row.barcode);
+  for(var i=0;i<master.product.length;i++){
+    var p=master.product[i];
+    if((sku&&norm(p.sku)===sku)||(barcode&&norm(p.barcode)===barcode))return p;
+  }
+  return {};
+}
+
+function meta(row){
+  var p=productFor(row);
+  return {
+    name:fieldValue(p,['name','productName','nama','itemName']),
+    brand:fieldValue(p,['brand','brandName']),
+    spare:fieldValue(p,['spare','spareCode','spareName']),
+    discount:fieldValue(p,['discount','diskon','discountPercent','discountRate'])
+  };
+}
+
+function discountLabel(v){
+  var s=text(v).trim();
+  if(!s)return '-';
+  if(s.slice(-1)==='%')return s;
+  var n=Number(s);
+  return isFinite(n)?n+'%':s;
+}
+
+function activeStore(){
+  var latest=null;
+  docs.forEach(function(d){
+    if(norm(d.status)!=='posted'||!text(d.storeCode).trim())return;
+    var t=text(d.postedAt||d.updatedAt||d.createdAt);
+    if(!latest||t>text(latest.postedAt||latest.updatedAt||latest.createdAt))latest=d;
+  });
+  if(latest)return {code:text(latest.storeCode),name:text(latest.storeName||latest.storeCode)};
+  if(stockRows.length){
+    var r=stockRows.slice().sort(function(a,b){return text(b.updatedAt).localeCompare(text(a.updatedAt));})[0];
+    return {code:text(r.storeCode),name:text(r.storeName||r.storeCode)};
+  }
+  return {code:'',name:''};
+}
+
+function storeRows(){
+  var s=activeStore();
+  if(!s.code)return [];
+  return stockRows.filter(function(r){return text(r.storeCode)===s.code;});
+}
+
+function renderFilters(){
+  var rows=storeRows(),brands=[],discounts=[];
+  rows.forEach(function(r){
+    var m=meta(r);
+    if(m.brand&&brands.indexOf(m.brand)===-1)brands.push(m.brand);
+    if(m.discount&&discounts.indexOf(m.discount)===-1)discounts.push(m.discount);
+  });
+  brands.sort(function(a,b){return a.localeCompare(b);});
+  discounts.sort(function(a,b){return Number(a)-Number(b);});
+
+  var b=el('brandFilter'),d=el('discountFilter');
+  var bv=b.value,dv=d.value;
+  b.innerHTML='<option value="">SEMUA BRAND</option>'+brands.map(function(x){return '<option value="'+esc(x)+'">'+esc(x)+'</option>';}).join('');
+  d.innerHTML='<option value="">SEMUA DISKON</option>'+discounts.map(function(x){return '<option value="'+esc(x)+'">'+esc(discountLabel(x))+'</option>';}).join('');
+  b.value=bv;d.value=dv;
+}
+
+function render(){
+  load();
+  var store=activeStore();
+  el('storeLabel').textContent=store.code?'STORE: '+(store.name||store.code):'Belum ada store aktif.';
+  el('storeNotice').textContent=store.code
+    ?'Saldo stok ditampilkan untuk Store aktif: '+(store.name||store.code)+'. Store tidak dapat dipilih dari halaman ini.'
+    :'Belum ada data posting Goods Receiving. Posting transaksi terlebih dahulu agar saldo stok dapat ditampilkan.';
+  renderFilters();
+
+  var q=norm(el('search').value);
+  var brand=text(el('brandFilter').value);
+  var discount=text(el('discountFilter').value);
+
+  var rows=storeRows().filter(function(r){
+    var m=meta(r);
+    var hay=norm(r.barcode)+' '+norm(r.sku)+' '+norm(m.name);
+    if(q&&hay.indexOf(q)===-1)return false;
+    if(brand&&m.brand!==brand)return false;
+    if(discount&&m.discount!==discount)return false;
+    return true;
+  }).sort(function(a,b){return norm(a.sku).localeCompare(norm(b.sku));});
+
+  var body=el('stockBody'),qty=0;
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="8" class="empty">Tidak ada saldo stok sesuai filter.</td></tr>';
+  }else{
+    body.innerHTML=rows.map(function(r,i){
+      var m=meta(r),qoh=Number(r.qtyOnHand)||0;qty+=qoh;
+      return '<tr><td>'+(i+1)+'</td><td><b>'+esc(r.barcode||'-')+'</b></td><td>'+esc(r.sku||'-')+'</td><td>'+esc(m.name||'-')+'</td><td>'+esc(m.brand||'-')+'</td><td>'+esc(m.spare||'-')+'</td><td>'+esc(discountLabel(m.discount))+'</td><td class="stockQty">'+qoh+'</td></tr>';
+    }).join('');
+  }
+  el('skuTotal').textContent=rows.length;
+  el('qtyTotal').textContent=qty;
+}
+
+function init(){
+  load();
+  render();
+  el('search').addEventListener('input',render);
+  el('brandFilter').addEventListener('change',render);
+  el('discountFilter').addEventListener('change',render);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</body>
+</html>
