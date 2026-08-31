@@ -203,13 +203,6 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
 
     <div id="scanMessage" class="notice hidden"></div>
 
-    <div class="summary scanSummary">
-      <div><b id="scanLineCount">0</b><span>BARIS PL</span></div>
-      <div><b id="scanExpected">0</b><span>QTY PL</span></div>
-      <div><b id="scanActual">0</b><span>QTY SCAN</span></div>
-      <div><b id="scanBalance">0</b><span>BALANCE</span></div>
-    </div>
-
     <div class="tableWrap">
       <table>
         <thead><tr>
@@ -493,10 +486,6 @@ function renderScan(){
     var done=bal===0;
     body.innerHTML+='<tr><td>'+(i+1)+'</td><td><b>'+esc(it.barcode)+'</b></td><td>'+esc(it.sku||'-')+'</td><td>'+exp+'</td><td><b>'+sc+'</b></td><td class="'+(done?'balanceZero':'balanceOpen')+'">'+bal+'</td><td class="'+(done?'statusDone':'statusOpen')+'">'+(done?'✓ BALANCE':'MENUNGGU')+'</td></tr>';
   });
-  el('scanLineCount').textContent=items.length;
-  el('scanExpected').textContent=expected;
-  el('scanActual').textContent=actual;
-  el('scanBalance').textContent=balance;
   el('postBtn').disabled=!(items.length&&balance===0);
 }
 function addScan(){
