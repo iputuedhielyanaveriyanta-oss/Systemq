@@ -92,6 +92,14 @@
 }
 </style>
 
+<style id="inventory-menu-layout">
+.inventory-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px;max-width:720px}
+.inventory-card{min-height:118px;padding:18px;border:1px solid #dce3e8;border-radius:14px;background:#fff;text-align:left;text-decoration:none;color:#1d2833;font:inherit;display:block;box-sizing:border-box}
+button.inventory-card{width:100%;cursor:pointer}
+.inventory-card b{display:block;font-size:16px;margin-bottom:7px}
+.inventory-card span{display:block;color:#687582;font-size:13px;line-height:1.45;font-weight:400}
+@media(max-width:650px){.inventory-menu{grid-template-columns:1fr}.inventory-card{min-height:96px;padding:16px}}
+</style>
 </head><body>
 <header><div><b>SYSTEMQ</b><small>SYSTEM TOKO</small></div><nav><button onclick="show('master')">MASTER GLOBAL</button><button onclick="show('inventory')">INVENTORY</button><button onclick="show('report')">LAPORAN</button><button onclick="show('finance')">FINANCE & AKUNTING</button></nav></header>
 <main>
@@ -107,9 +115,21 @@
 
 <input id="search" placeholder="Cari data..." oninput="render()"><b id="count"></b><h3 id="tableTitle"></h3>
 <div class="table"><table><thead id="head"></thead><tbody id="body"></tbody></table></div></section>
-<section id="inventory" class="hidden"><h1>INVENTORY</h1><div class="box">Tahap berikutnya: stok per Store.</div></section>
+
+<section id="inventory" class="hidden">
+<h1>INVENTORY</h1>
+<p>Pilih proses Inventory yang ingin digunakan.</p>
+<div class="inventory-menu">
+  <a class="inventory-card" href="./inventory.html"><b>GOODS RECEIVING</b><span>Penerimaan barang, Import PL, input manual, Scan dan Posting stok.</span></a>
+  <a class="inventory-card" href="./saldo-stok.html"><b>SALDO STOK</b><span>Lihat saldo stok store aktif dengan filter Brand dan Diskon.</span></a>
+  <button class="inventory-card" type="button" onclick="inventoryComingSoon('RUBAH STOK')"><b>RUBAH STOK</b><span>Stock adjustment untuk penambahan atau pengurangan stok.</span></button>
+  <button class="inventory-card" type="button" onclick="inventoryComingSoon('KARTU STOK')"><b>KARTU STOK</b><span>Riwayat seluruh pergerakan stok per barang.</span></button>
+</div>
+</section>
+
 <section id="report" class="hidden"><h1>LAPORAN</h1><div class="box">Modul laporan akan dibangun setelah Inventory.</div></section>
 <section id="finance" class="hidden"><h1>FINANCE & AKUNTING</h1><div class="box">Akses nanti menggunakan kode rahasia.</div></section>
 </main>
 <div id="modal" class="modal hidden"><div class="card"><button class="close" onclick="closeModal()">×</button><h2 id="modalTitle"></h2><form id="form" onsubmit="save(event)"></form></div></div>
+<script>function inventoryComingSoon(name){alert(name+" akan kita kerjakan setelah modul Saldo Stok selesai.");}</script>
 <script src="app.js"></script></body></html>
