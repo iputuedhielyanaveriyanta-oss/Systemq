@@ -7,158 +7,103 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div id="setupScreen" class="setup-screen hidden">
+  <div class="setup-card">
+    <div class="brand"><h1>SYSTEM<span>Q</span></h1><p>FIRST TIME SETUP</p></div>
+    <div class="stepper"><span class="step active">1 COMPANY</span><span class="step">2 STORE</span><span class="step">3 READY</span></div>
+    <div id="companySetup">
+      <h2>Setup Company</h2><p class="muted">Masukkan identitas perusahaan terlebih dahulu.</p>
+      <label>Nama Perusahaan</label><input id="companyName" placeholder="Nama perusahaan">
+      <label>Jenis Bisnis</label><select id="businessType"><option>Retail</option><option>Fashion Retail</option><option>General Retail</option></select>
+      <button class="primary" onclick="saveCompany()">LANJUTKAN</button>
+    </div>
+    <div id="firstStoreSetup" class="hidden">
+      <h2>Tambah Store Pertama</h2><p class="muted">Master barang akan digunakan bersama oleh seluruh store.</p>
+      <label>Kode Store</label><input id="firstStoreCode" placeholder="Contoh: KTA01">
+      <label>Nama Store</label><input id="firstStoreName" placeholder="Nama store">
+      <button class="primary" onclick="saveFirstStore()">SELESAIKAN SETUP</button>
+    </div>
+  </div>
+</div>
 
 <section id="loginScreen" class="login-screen">
   <div class="login-card">
-    <div class="brand"><h1>SYSTEM<span style="color:#ff6b2c">Q</span></h1><p>RETAIL MANAGEMENT SYSTEM</p></div>
-    <div class="field"><label>Username</label><input id="username" placeholder="Masukkan username"></div>
-    <div class="field"><label>Password</label><input id="password" type="password" placeholder="Masukkan password"></div>
+    <div class="brand"><h1>SYSTEM<span>Q</span></h1><p>RETAIL MANAGEMENT SYSTEM</p></div>
+    <label>Username</label><input id="username" placeholder="Masukkan username">
+    <label>Password</label><input id="password" type="password" placeholder="Masukkan password">
     <button class="primary" onclick="login()">LOGIN</button>
-    <p style="text-align:center;color:#8a949c;font-size:12px;margin-top:22px">SYSTEMQ v1.0 — Prototype</p>
+    <button class="link-btn" onclick="startSetup()">Demo Setup System</button>
   </div>
 </section>
 
 <div id="app" class="app hidden">
   <aside class="sidebar">
     <div class="logo">SYSTEM<span>Q</span></div>
-    <nav class="nav">
-      <button class="active" onclick="showPage('home',this)">⌂ <span>MENU UTAMA</span></button>
-      <button onclick="showPage('master',this)">▣ <span>MASTER</span></button>
-      <button onclick="showPage('inventory',this)">▤ <span>INVENTORY</span></button>
-      <button onclick="showPage('cashier',this)">🛒 <span>KASIR</span></button>
-      <button onclick="showPage('reports',this)">▥ <span>LAPORAN</span></button>
-      <button class="lock" onclick="openFinance()">🔒 <span>FINANCE & ACCOUNTING</span></button>
+    <nav>
+      <button class="nav active" onclick="showPage('home',this)">⌂ <span>MENU UTAMA</span></button>
+      <button class="nav" onclick="showPage('master',this)">▣ <span>MASTER</span></button>
+      <button class="nav" onclick="showPage('inventory',this)">▤ <span>INVENTORY</span></button>
+      <button class="nav" onclick="showPage('cashier',this)">🛒 <span>KASIR</span></button>
+      <button class="nav" onclick="showPage('reports',this)">▥ <span>LAPORAN</span></button>
+      <button class="nav finance" onclick="showPage('finance',this)">🔒 <span>FINANCE & ACCOUNTING</span></button>
     </nav>
   </aside>
-
-  <main class="content">
+  <main>
     <header class="topbar">
-      <div class="crumb" id="crumb">MENU UTAMA</div>
-      <div style="display:flex;align-items:center;gap:18px">
-  <button class="store-context" onclick="openStoreSelector()">🏪 <span id="activeStoreCode">KTA01</span> — <span id="activeStoreName">SURF WAREHOUSE KUTA</span> ▾</button>
-  <div class="user"><div class="avatar" id="avatar">E</div><span id="userLabel">EDHY</span> ⚙</div>
-</div>
+      <b id="crumb">MENU UTAMA</b>
+      <div class="header-right">
+        <button class="store-context" onclick="showPage('stores')">🏪 <b id="activeStoreCode">STORE</b> — <span id="activeStoreName">Belum dipilih</span> ▾</button>
+        <span>👤 <b id="userLabel">ADMIN</b></span>
+      </div>
     </header>
 
     <section id="home" class="page">
-      <div class="welcome">
-        <div><h2>Selamat datang di SYSTEMQ</h2><p>Satu sistem untuk operasional toko.</p></div>
-      </div>
+      <div class="center"><h1>Selamat datang di SYSTEMQ</h1><p>Satu sistem untuk seluruh operasional perusahaan dan multi-store.</p>
+      <div class="quick-grid">
+        <div class="quick" onclick="showPage('stores')">🏪<b>STORE MANAGEMENT</b><small>Kelola cabang perusahaan</small></div>
+        <div class="quick" onclick="showPage('inventory')">📦<b>INVENTORY</b><small>Stok per store</small></div>
+        <div class="quick" onclick="showPage('cashier')">🛒<b>KASIR</b><small>Transaksi store aktif</small></div>
+      </div></div>
     </section>
 
     <section id="master" class="page hidden">
-      <div class="title-row"><div><h2>MASTER</h2><div class="subtitle">Kelola data utama sistem</div></div></div>
+      <h1>MASTER</h1><p class="muted">Master data global perusahaan</p>
       <div class="grid">
-        <div class="tile"><div class="icon">📦</div><b>PRODUK</b><small>Data produk & variant</small></div>
-        <div class="tile"><div class="icon">🏷️</div><b>BRAND</b><small>Master brand</small></div>
-        <div class="tile"><div class="icon">📁</div><b>CATEGORY</b><small>Kategori produk</small></div>
-        <div class="tile" onclick="showPage('stores')"><div class="icon">🏪</div><b>STORE</b><small>Kode & nama cabang/store</small></div>
-        <div class="tile"><div class="icon">🚚</div><b>SUPPLIER</b><small>Data supplier</small></div>
-        <div class="tile"><div class="icon">👤</div><b>USER</b><small>User & akses sistem</small></div>
+        <div class="tile">📦<b>PRODUK</b><small>Satu master untuk seluruh store</small></div>
+        <div class="tile">🏷️<b>BRAND</b><small>Master brand</small></div>
+        <div class="tile">📁<b>CATEGORY</b><small>Kategori produk</small></div>
+        <div class="tile" onclick="showPage('stores')">🏪<b>STORE</b><small>Kode & nama store</small></div>
+        <div class="tile">🚚<b>SUPPLIER</b><small>Master supplier</small></div>
+        <div class="tile">👤<b>USER</b><small>User & akses</small></div>
       </div>
     </section>
 
     <section id="stores" class="page hidden">
-      <div class="title-row">
-        <div><h2>MASTER / STORE</h2><div class="subtitle">Master store perusahaan. Satu master barang digunakan bersama seluruh store.</div></div>
-        <div class="toolbar"><input class="search" placeholder="🔍 Cari kode atau nama store"><button class="btn orange" onclick="openStoreForm()">+ TAMBAH STORE</button></div>
-      </div>
-      <div class="card table-card">
-        <table class="table"><thead><tr><th>KODE STORE</th><th>NAMA STORE</th><th>STATUS</th><th>AKSI</th></tr></thead>
-        <tbody id="storeTable">
-          <tr><td><b>KTA01</b></td><td>SURF WAREHOUSE KUTA</td><td class="stock-ok">● ACTIVE</td><td><button class="btn light" onclick="setActiveStore('KTA01','SURF WAREHOUSE KUTA')">PILIH</button></td></tr>
-          <tr><td><b>SMY01</b></td><td>SURF WAREHOUSE SEMINYAK</td><td class="stock-ok">● ACTIVE</td><td><button class="btn light" onclick="setActiveStore('SMY01','SURF WAREHOUSE SEMINYAK')">PILIH</button></td></tr>
-          <tr><td><b>CGG01</b></td><td>SURF WAREHOUSE CANGGU</td><td class="stock-ok">● ACTIVE</td><td><button class="btn light" onclick="setActiveStore('CGG01','SURF WAREHOUSE CANGGU')">PILIH</button></td></tr>
-        </tbody></table>
-      </div>
-      <div class="card" style="padding:22px;margin-top:18px">
-        <b>STRUKTUR INVENTORY SYSTEMQ</b>
-        <div class="subtitle" style="margin-top:8px">Master Produk bersifat global untuk seluruh perusahaan. Saldo stok dipisahkan berdasarkan kombinasi <b>Product + Store</b>.</div>
-        <div style="margin-top:18px;font-family:ui-monospace,monospace;line-height:1.8">MASTER PRODUCT (GLOBAL)<br> ├── KTA01 → STOCK BALANCE<br> ├── SMY01 → STOCK BALANCE<br> └── CGG01 → STOCK BALANCE</div>
-      </div>
+      <div class="title-row"><div><h1>MASTER / STORE</h1><p class="muted">Kelola seluruh cabang/store perusahaan.</p></div><button class="btn orange" onclick="openStoreModal()">+ TAMBAH STORE</button></div>
+      <div class="company-bar">🏢 <b id="companyDisplay">COMPANY BELUM DISETUP</b><button onclick="editCompany()">Edit Company</button></div>
+      <div class="table-card"><table><thead><tr><th>KODE STORE</th><th>NAMA STORE</th><th>STATUS</th><th>AKSI</th></tr></thead><tbody id="storeRows"></tbody></table></div>
+      <div class="info-card"><b>STRUKTUR SYSTEMQ</b><p>Master Produk bersifat global. Setiap store hanya memiliki saldo stok masing-masing berdasarkan kombinasi <b>Product + Store</b>.</p></div>
     </section>
 
-    <section id="inventory" class="page hidden">
-      <div class="title-row"><div><h2>INVENTORY</h2><div class="subtitle">Kontrol stok dan pergerakan barang</div></div><div class="toolbar"><input class="search" placeholder="🔍 Cari SKU / Barcode / Produk"><button class="btn orange">+ BARANG MASUK</button></div></div>
-      <div class="toolbar" style="margin-bottom:16px"><button class="btn light">STOCK MOVEMENT</button><button class="btn light">TRANSFER</button><button class="btn light">STOCK OPNAME</button></div>
-      <div class="card table-card"><table class="table"><thead><tr><th>PRODUK</th><th>SKU</th><th>STORE</th><th>STOK</th><th>STATUS</th></tr></thead><tbody>
-      <tr><td>Billabong T-Shirt</td><td>BB001</td><td>KUTA</td><td class="stock-ok">12</td><td>Normal</td></tr>
-      <tr><td>Quiksilver Shorts</td><td>QS102</td><td>KUTA</td><td class="stock-ok">8</td><td>Normal</td></tr>
-      <tr><td>RVCA Shirt</td><td>RV033</td><td>KUTA</td><td class="stock-low">3</td><td>Low Stock</td></tr>
-      </tbody></table></div>
-    </section>
-
-    <section id="cashier" class="page hidden">
-      <div class="title-row"><div><h2>KASIR</h2><div class="subtitle">STORE: SURF WAREHOUSE KUTA • KASIR: EDHY</div></div></div>
-      <div class="cashier">
-        <div class="product-area">
-          <input class="search" style="width:100%" placeholder="🔍 Scan barcode atau cari produk">
-          <div class="product-preview"><div><div style="font-size:60px">📦</div><b>SIAP UNTUK TRANSAKSI</b><p>Scan barcode atau cari produk</p></div></div>
-          <div style="margin-top:15px"><b>BILLABONG T-SHIRT</b><div class="subtitle">Harga normal Rp500.000 • SPECIAL PROMO 50%</div><h2 style="margin:8px 0">Rp250.000</h2><button class="btn orange">+ TAMBAH KE KERANJANG</button></div>
-        </div>
-        <div class="cart">
-          <h3 style="margin-top:0">TRANSAKSI</h3>
-          <div class="cart-item"><span>Billabong T-Shirt × 1</span><b>Rp250.000</b></div>
-          <div class="cart-item"><span>Quiksilver Shorts × 1</span><b>Rp300.000</b></div>
-          <div class="total">TOTAL <span style="float:right">Rp550.000</span></div>
-          <div class="pay"><button>CASH</button><button>QRIS</button><button>CARD</button></div>
-          <button class="primary">SELESAI TRANSAKSI</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="reports" class="page hidden">
-      <div class="title-row"><div><h2>LAPORAN</h2><div class="subtitle">Analisis operasional toko</div></div></div>
-      <div class="report-tabs"><div class="tab">PENJUALAN</div><div class="tab">PRODUK</div><div class="tab">BRAND</div><div class="tab">KASIR</div><div class="tab">INVENTORY</div></div>
-      <div class="card report-box">
-        <b>PERIODE</b>
-        <div class="toolbar" style="margin-top:12px"><input class="search" value="01 Aug 2026 - 31 Aug 2026"><select class="search"><option>SEMUA STORE</option><option>KUTA</option></select><button class="btn">TAMPILKAN</button></div>
-        <div class="stats"><div class="stat"><small>Total Sales</small><b>Rp125.000.000</b></div><div class="stat"><small>Total Transaction</small><b>523</b></div><div class="stat"><small>Items Sold</small><b>1.204</b></div></div>
-      </div>
-    </section>
-
-    <section id="finance" class="page hidden">
-      <div class="title-row"><div><h2>FINANCE & ACCOUNTING 🔒</h2><div class="subtitle">Area informasi keuangan penting</div></div></div>
-      <div class="grid finance-menu">
-        <div class="tile"><div class="icon">💰</div><b>CASH FLOW</b></div>
-        <div class="tile"><div class="icon">📥</div><b>PENDAPATAN</b></div>
-        <div class="tile"><div class="icon">📤</div><b>PENGELUARAN</b></div>
-        <div class="tile"><div class="icon">📊</div><b>PROFIT & LOSS</b></div>
-        <div class="tile"><div class="icon">📒</div><b>ACCOUNTING</b></div>
-        <div class="tile"><div class="icon">🏦</div><b>BANK & CASH</b></div>
-      </div>
-    </section>
-    <div class="footer-status">STORE: SURF WAREHOUSE KUTA &nbsp; • &nbsp; <span class="online">● ONLINE</span></div>
+    <section id="inventory" class="page hidden"><h1>INVENTORY</h1><p class="muted">Tahap berikutnya: saldo stok per store.</p><div class="placeholder">📦 INVENTORY MODULE<br><small>Master Produk Global → Stock Balance per Store</small></div></section>
+    <section id="cashier" class="page hidden"><h1>KASIR</h1><p class="muted">Transaksi akan otomatis menggunakan Store aktif.</p><div class="placeholder">🛒 POS / KASIR<br><small id="cashierStore">Pilih store terlebih dahulu</small></div></section>
+    <section id="reports" class="page hidden"><h1>LAPORAN</h1><div class="placeholder">📊 REPORTING MODULE</div></section>
+    <section id="finance" class="page hidden"><h1>FINANCE & ACCOUNTING 🔒</h1><div class="placeholder">🔒 AREA TERPROTEKSI</div></section>
   </main>
 </div>
 
+<div id="storeModal" class="modal-bg hidden"><div class="modal"><h2 id="storeModalTitle">Tambah Store</h2>
+<label>Kode Store</label><input id="storeCode" placeholder="Contoh: KTA01">
+<label>Nama Store</label><input id="storeName" placeholder="Nama store">
+<label>Status</label><select id="storeStatus"><option>ACTIVE</option><option>INACTIVE</option></select>
+<div class="modal-actions"><button class="btn light" onclick="closeStoreModal()">BATAL</button><button class="btn orange" onclick="saveStore()">SIMPAN</button></div>
+</div></div>
 
-<div id="storeFormModal" class="modal-backdrop hidden">
-  <div class="modal" style="text-align:left">
-    <h2 style="text-align:center;margin-top:0">TAMBAH STORE</h2>
-    <div class="field"><label>Kode Store</label><input id="newStoreCode" placeholder="Contoh: DPS01"></div>
-    <div class="field"><label>Nama Store</label><input id="newStoreName" placeholder="Contoh: SURF WAREHOUSE DENPASAR"></div>
-    <div class="field"><label>Status</label><select id="newStoreStatus" style="width:100%;padding:14px;border:1px solid var(--line);border-radius:12px"><option>ACTIVE</option><option>INACTIVE</option></select></div>
-    <button class="primary" onclick="addStore()">SIMPAN STORE</button>
-    <button class="btn light" style="margin-top:10px;width:100%" onclick="closeStoreForm()">BATAL</button>
-  </div>
-</div>
-
-<div id="storeSelectorModal" class="modal-backdrop hidden">
-  <div class="modal" style="text-align:left">
-    <h2 style="margin-top:0;text-align:center">PILIH STORE</h2>
-    <div id="storeSelectorList"></div>
-    <button class="btn light" style="margin-top:14px;width:100%" onclick="closeStoreSelector()">KEMBALI</button>
-  </div>
-</div>
-<div id="financeModal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div style="font-size:48px">🔒</div><h2>FINANCE & ACCOUNTING</h2><p class="subtitle">Masukkan kode rahasia untuk membuka akses.</p>
-    <div class="pin"><input maxlength="1" type="password"><input maxlength="1" type="password"><input maxlength="1" type="password"><input maxlength="1" type="password"><input maxlength="1" type="password"><input maxlength="1" type="password"></div>
-    <button class="primary" onclick="unlockFinance()">MASUK</button>
-    <button class="btn light" style="margin-top:10px;width:100%" onclick="closeFinance()">KEMBALI</button>
-  </div>
-</div>
+<div id="companyModal" class="modal-bg hidden"><div class="modal"><h2>Edit Company</h2>
+<label>Nama Perusahaan</label><input id="editCompanyName">
+<label>Jenis Bisnis</label><select id="editBusinessType"><option>Retail</option><option>Fashion Retail</option><option>General Retail</option></select>
+<div class="modal-actions"><button class="btn light" onclick="closeCompanyModal()">BATAL</button><button class="btn orange" onclick="updateCompany()">SIMPAN</button></div>
+</div></div>
 
 <script src="js/app.js"></script>
 </body>

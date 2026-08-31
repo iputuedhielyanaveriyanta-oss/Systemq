@@ -1,23 +1,12 @@
-# SYSTEMQ
+# SYSTEMQ v1.2
 
-Retail Management System untuk satu perusahaan dengan banyak store.
+Update:
+- First Time Company Setup
+- First Store Setup
+- Master Store Management
+- Store Code + Store Name + Status
+- Add/Edit Store
+- Active Store Context
+- Multi-store foundation
 
-## Struktur saat ini
-
-- `index.html` — struktur aplikasi
-- `css/style.css` — seluruh tampilan
-- `js/app.js` — navigasi dan interaksi prototype
-- `assets/` — aset aplikasi
-- `docs/` — dokumentasi sistem
-
-## Fondasi konsep
-
-- Satu master produk global untuk seluruh perusahaan
-- Banyak store
-- Saldo stok berbeda per store
-- Stock movement sebagai riwayat perubahan stok
-- Satu aplikasi dengan akses berdasarkan user/role
-
-## Status
-
-Prototype UI / belum terhubung ke Supabase.
+Data masih prototype/browser memory. Supabase belum terhubung.

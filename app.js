@@ -1,57 +1,15 @@
-function login(){
-  const u=document.getElementById('username').value.trim()||'EDHY';
-  document.getElementById('userLabel').textContent=u.toUpperCase();
-  document.getElementById('avatar').textContent=u.charAt(0).toUpperCase();
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-}
-function showPage(id,btn){
-  document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-  document.getElementById('crumb').textContent=id==='home'?'MENU UTAMA':id==='stores'?'MASTER / STORE':id.toUpperCase();
-  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-}
-function openFinance(){document.getElementById('financeModal').classList.remove('hidden')}
-function closeFinance(){document.getElementById('financeModal').classList.add('hidden')}
-function unlockFinance(){closeFinance();showPage('finance');document.getElementById('crumb').textContent='FINANCE & ACCOUNTING'}
-document.querySelectorAll('.pin input').forEach((el,i,arr)=>el.addEventListener('input',()=>{if(el.value&&arr[i+1])arr[i+1].focus()}));
-document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
-
-const stores = [
-  {code:'KTA01',name:'SURF WAREHOUSE KUTA',status:'ACTIVE'},
-  {code:'SMY01',name:'SURF WAREHOUSE SEMINYAK',status:'ACTIVE'},
-  {code:'CGG01',name:'SURF WAREHOUSE CANGGU',status:'ACTIVE'}
-];
-
-function openStoreForm(){document.getElementById('storeFormModal').classList.remove('hidden')}
-function closeStoreForm(){document.getElementById('storeFormModal').classList.add('hidden')}
-function addStore(){
-  const code=document.getElementById('newStoreCode').value.trim().toUpperCase();
-  const name=document.getElementById('newStoreName').value.trim().toUpperCase();
-  const status=document.getElementById('newStoreStatus').value;
-  if(!code||!name){alert('Kode Store dan Nama Store wajib diisi.');return}
-  if(stores.some(s=>s.code===code)){alert('Kode Store sudah digunakan.');return}
-  stores.push({code,name,status});
-  renderStores();
-  document.getElementById('newStoreCode').value='';
-  document.getElementById('newStoreName').value='';
-  closeStoreForm();
-}
-function renderStores(){
-  const table=document.getElementById('storeTable');
-  if(table) table.innerHTML=stores.map(s=>`<tr><td><b>${s.code}</b></td><td>${s.name}</td><td class="${s.status==='ACTIVE'?'stock-ok':'stock-low'}">● ${s.status}</td><td><button class="btn light" onclick="setActiveStore('${s.code}','${s.name}')">PILIH</button></td></tr>`).join('');
-}
-function setActiveStore(code,name){
-  document.getElementById('activeStoreCode').textContent=code;
-  document.getElementById('activeStoreName').textContent=name;
-  closeStoreSelector();
-  const subtitle=[...document.querySelectorAll('#cashier .subtitle')][0];
-  if(subtitle) subtitle.textContent=`STORE: ${code} — ${name} • KASIR: ${document.getElementById('userLabel').textContent}`;
-}
-function openStoreSelector(){
-  const list=document.getElementById('storeSelectorList');
-  list.innerHTML=stores.filter(s=>s.status==='ACTIVE').map(s=>`<button class="btn light" style="width:100%;text-align:left;margin:6px 0" onclick="setActiveStore('${s.code}','${s.name}')"><b>${s.code}</b><br><small>${s.name}</small></button>`).join('');
-  document.getElementById('storeSelectorModal').classList.remove('hidden');
-}
-function closeStoreSelector(){document.getElementById('storeSelectorModal').classList.add('hidden')}
+let company={name:'',type:'Retail'};let stores=[];let editingIndex=null;
+function login(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');const u=document.getElementById('username').value.trim();if(u)document.getElementById('userLabel').textContent=u.toUpperCase()}
+function startSetup(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('setupScreen').classList.remove('hidden')}
+function saveCompany(){const n=document.getElementById('companyName').value.trim();if(!n){alert('Nama perusahaan wajib diisi.');return}company.name=n;company.type=document.getElementById('businessType').value;document.getElementById('companySetup').classList.add('hidden');document.getElementById('firstStoreSetup').classList.remove('hidden');document.querySelectorAll('.step')[0].classList.remove('active');document.querySelectorAll('.step')[1].classList.add('active')}
+function saveFirstStore(){const c=document.getElementById('firstStoreCode').value.trim().toUpperCase(),n=document.getElementById('firstStoreName').value.trim();if(!c||!n){alert('Kode dan nama store wajib diisi.');return}stores.push({code:c,name:n,status:'ACTIVE'});finishSetup()}
+function finishSetup(){renderStores();document.getElementById('setupScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');setActiveStore(0)}
+function showPage(id,btn){document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.getElementById('crumb').textContent=id==='home'?'MENU UTAMA':id==='stores'?'MASTER / STORE':id.toUpperCase();document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');if(id==='stores')renderStores()}
+function renderStores(){document.getElementById('companyDisplay').textContent=company.name||'COMPANY BELUM DISETUP';const rows=document.getElementById('storeRows');rows.innerHTML=stores.map((s,i)=>`<tr><td><b>${s.code}</b></td><td>${s.name}</td><td class="${s.status==='ACTIVE'?'status-active':'status-inactive'}">● ${s.status}</td><td><button class="btn light" onclick="setActiveStore(${i})">PILIH</button> <button class="btn light" onclick="openStoreModal(${i})">EDIT</button></td></tr>`).join('')||'<tr><td colspan="4" class="muted">Belum ada store.</td></tr>'}
+function openStoreModal(i=null){editingIndex=i;document.getElementById('storeModalTitle').textContent=i===null?'Tambah Store':'Edit Store';const s=i===null?{code:'',name:'',status:'ACTIVE'}:stores[i];document.getElementById('storeCode').value=s.code;document.getElementById('storeName').value=s.name;document.getElementById('storeStatus').value=s.status;document.getElementById('storeModal').classList.remove('hidden')}
+function closeStoreModal(){document.getElementById('storeModal').classList.add('hidden')}
+function saveStore(){const code=document.getElementById('storeCode').value.trim().toUpperCase(),name=document.getElementById('storeName').value.trim(),status=document.getElementById('storeStatus').value;if(!code||!name){alert('Kode dan nama store wajib diisi.');return}if(stores.some((s,i)=>s.code===code&&i!==editingIndex)){alert('Kode store sudah digunakan.');return}const obj={code,name,status};if(editingIndex===null)stores.push(obj);else stores[editingIndex]=obj;closeStoreModal();renderStores()}
+function setActiveStore(i){const s=stores[i];if(!s)return;document.getElementById('activeStoreCode').textContent=s.code;document.getElementById('activeStoreName').textContent=s.name;document.getElementById('cashierStore').textContent=`STORE AKTIF: ${s.code} — ${s.name}`}
+function editCompany(){document.getElementById('editCompanyName').value=company.name;document.getElementById('editBusinessType').value=company.type;document.getElementById('companyModal').classList.remove('hidden')}
+function closeCompanyModal(){document.getElementById('companyModal').classList.add('hidden')}
+function updateCompany(){const n=document.getElementById('editCompanyName').value.trim();if(!n){alert('Nama perusahaan wajib diisi.');return}company.name=n;company.type=document.getElementById('editBusinessType').value;closeCompanyModal();renderStores()}
