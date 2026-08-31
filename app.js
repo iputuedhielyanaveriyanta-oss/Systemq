@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'systemq_v18_data';
+/* SYSTEMQ v18.1 DATA RECOVERY */\nconst STORAGE_KEY = 'systemq_v18_data';
 const LEGACY_KEYS = ['systemq_v17_data','systemq_v16_data'];
 
 const SCHEMA = {
@@ -12,13 +12,85 @@ const SCHEMA = {
   product:{title:'MASTER BARANG',fields:[['brand','BRAND','dynamic','brand'],['supplier','SUPPLIER','dynamic','supplier'],['sku','SKU'],['name','NAMA BARANG'],['barcode','BARCODE'],['spare','SPARE','dynamic','spare'],['color','WARNA','dynamic','color'],['price','HARGA JUAL'],['discount','DISKON %'],['size','SIZE','dynamic','size'],['status','STATUS','select',['ACTIVE','INACTIVE']]]}
 };
 
-let db = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-if (!db) {
-  for (const key of LEGACY_KEYS) { const old=localStorage.getItem(key); if(old){ try{ db=JSON.parse(old); break; }catch(e){} } }
+function parseStoredData(key){
+  const raw = localStorage.getItem(key);
+  if(!raw) return null;
+  try{
+    const value = JSON.parse(raw);
+    return value && typeof value === 'object' ? value : null;
+  }catch(e){
+    return null;
+  }
 }
-if (!db || typeof db !== 'object') db={};
-Object.keys(SCHEMA).forEach(key=>{if(!Array.isArray(db[key])) db[key]=[];});
-if(!db.brandPromos || typeof db.brandPromos!=='object') db.brandPromos={};
+
+function normalizeDatabase(data){
+  const value = data && typeof data === 'object' ? data : {};
+  Object.keys(SCHEMA).forEach(key=>{
+    if(!Array.isArray(value[key])) value[key]=[];
+  });
+  if(!value.brandPromos || typeof value.brandPromos !== 'object') value.brandPromos={};
+  return value;
+}
+
+function recordId(record,type){
+  if(!record || typeof record !== 'object') return '';
+  if(type==='product') return String(record.sku||'').trim().toLowerCase();
+  return String(record.code||record.name||'').trim().toLowerCase();
+}
+
+function mergeRecordLists(current, incoming, type){
+  const out = Array.isArray(current) ? current.slice() : [];
+  const seen = new Set(out.map(item=>recordId(item,type)).filter(Boolean));
+  (Array.isArray(incoming)?incoming:[]).forEach(item=>{
+    const id = recordId(item,type);
+    if(!id || !seen.has(id)){
+      out.push(item);
+      if(id) seen.add(id);
+    }
+  });
+  return out;
+}
+
+function mergePromoMaps(current, incoming){
+  const out = current && typeof current==='object' ? {...current} : {};
+  if(!incoming || typeof incoming!=='object') return out;
+  Object.keys(incoming).forEach(key=>{
+    const a = Array.isArray(out[key]) ? out[key].slice() : [];
+    const seen = new Set(a.map(x=>JSON.stringify(x)));
+    (Array.isArray(incoming[key])?incoming[key]:[]).forEach(item=>{
+      const sig=JSON.stringify(item);
+      if(!seen.has(sig)){ a.push(item); seen.add(sig); }
+    });
+    out[key]=a;
+  });
+  return out;
+}
+
+function mergeDatabase(base, incoming){
+  const target = normalizeDatabase(base);
+  const source = normalizeDatabase(incoming);
+  Object.keys(SCHEMA).forEach(type=>{
+    target[type] = mergeRecordLists(target[type],source[type],type);
+  });
+  target.brandPromos = mergePromoMaps(target.brandPromos,source.brandPromos);
+  return target;
+}
+
+let db = normalizeDatabase(parseStoredData(STORAGE_KEY));
+let migrated = false;
+
+for(const key of LEGACY_KEYS){
+  const legacy = parseStoredData(key);
+  if(legacy){
+    const before = JSON.stringify(db);
+    db = mergeDatabase(db,legacy);
+    if(JSON.stringify(db)!==before) migrated=true;
+  }
+}
+
+if(migrated || !localStorage.getItem(STORAGE_KEY)){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
+}
 
 let currentType='store', selectedIndex=null, editingIndex=null;
 let currentBrandIndex=null, editingPromoIndex=null;
@@ -31,15 +103,22 @@ function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function brandKey(brand,index=currentBrandIndex){return brand && (brand.code||brand.name) ? String(brand.code||brand.name) : 'brand_'+index}
 
 function migrateLegacyBrandPromos(){
+  let changed=false;
   db.brand.forEach((brand,i)=>{
     const key=brandKey(brand,i);
-    if(!Array.isArray(db.brandPromos[key])) db.brandPromos[key]=[];
+    if(!Array.isArray(db.brandPromos[key])){ db.brandPromos[key]=[]; changed=true; }
     if(db.brandPromos[key].length===0 && (brand.newArrival||brand.discount||brand.margin)){
-      if(String(brand.newArrival||'').toUpperCase()==='YA') db.brandPromos[key].push({group:'',promo:'New Arrival',discount:'',margin:'',status:'ACTIVE'});
-      if(brand.discount||brand.margin) db.brandPromos[key].push({group:'',promo:'Diskon '+(brand.discount||''),discount:String(brand.discount||''),margin:String(brand.margin||''),status:'ACTIVE'});
+      if(String(brand.newArrival||'').toUpperCase()==='YA'){
+        db.brandPromos[key].push({group:'',promo:'New Arrival',discount:'',margin:'',status:'ACTIVE'});
+        changed=true;
+      }
+      if(brand.discount||brand.margin){
+        db.brandPromos[key].push({group:'',promo:'Diskon '+(brand.discount||''),discount:String(brand.discount||''),margin:String(brand.margin||''),status:'ACTIVE'});
+        changed=true;
+      }
     }
   });
-  persist();
+  if(changed) persist();
 }
 
 function show(id){document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden')); const t=$(id); if(t)t.classList.remove('hidden')}
