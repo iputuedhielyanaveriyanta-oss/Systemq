@@ -125,6 +125,8 @@ function editCurrentBrand(){if(currentBrandIndex===null)return;$('brandDetail').
 function addBrandPromo(){
   if(currentBrandIndex===null) return alert('Pilih BRAND terlebih dahulu.');
   editingPromoIndex=null;
+  const detail=$('brandDetailModal');
+  if(detail) detail.classList.add('hidden');
   openBrandPromoForm();
 }
 function editBrandPromo(i){editingPromoIndex=i;openBrandPromoForm()}
