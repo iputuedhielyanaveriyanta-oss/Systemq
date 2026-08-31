@@ -20,8 +20,9 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
 .importBox{border:2px dashed #cfd6db;border-radius:12px;padding:22px;text-align:center;background:#fafbfc}.fileInput{display:none}.fileLabel{display:inline-block;background:#ee952e;color:#fff;border-radius:9px;padding:12px 16px;font-weight:800;cursor:pointer}.fileName{margin-top:10px;color:#6d7780;font-size:13px}
 .summary{display:flex;gap:12px;margin:18px 0}.summary>div{flex:1;border:1px solid #e2e7eb;border-radius:10px;padding:14px}.summary b{display:block;font-size:24px}.summary span{font-size:11px;color:#6d7780;font-weight:800}
 .ok{color:#18864b;font-weight:800}
+.scanEntry{display:grid;grid-template-columns:minmax(0,1fr)220px;gap:12px;align-items:end;margin:8px 0 12px}.scanEntry .field{min-width:0}.scanEntry button{min-height:48px;white-space:nowrap}.scanSummary{margin-top:14px}.balanceZero{font-weight:800}.balanceOpen{font-weight:800}.statusDone{font-weight:800}.statusOpen{font-weight:800}
 .manualBox{margin:18px 0;border:1px solid #e1e6ea;border-radius:12px;padding:16px;background:#fafbfc}.manualHead{display:flex;justify-content:space-between;align-items:center;gap:12px}.manualHead h3{margin:0 0 4px;font-size:16px}.manualHead p{margin:0;color:#71808a;font-size:13px}.manualForm{display:grid;grid-template-columns:minmax(0,1fr)150px auto;gap:12px;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid #e5e9ec}.manualForm .field{min-width:0}.manualForm select{margin-top:8px}.manualQty input{min-height:46px}.manualAdd button{min-height:46px;white-space:nowrap}.manualAdd{display:flex}.manualHead button{white-space:nowrap}
-@media(max-width:700px){.topbar,.pageHead{flex-direction:column;align-items:flex-start}main{padding:14px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary{flex-direction:column}.manualHead{align-items:flex-start;flex-direction:column}.manualForm{grid-template-columns:1fr}.manualAdd button{width:100%}}
+@media(max-width:700px){.topbar,.pageHead{flex-direction:column;align-items:flex-start}main{padding:14px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary{flex-direction:column}.manualHead{align-items:flex-start;flex-direction:column}.manualForm{grid-template-columns:1fr}.manualAdd button{width:100%}.scanEntry{grid-template-columns:1fr}.scanEntry button{width:100%}}
 
 </style>
 </head>
@@ -169,6 +170,55 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
     </div>
   </div>
 </section>
+
+<section id="scanView" class="hidden">
+  <div class="pageHead">
+    <div>
+      <h1>SCAN BARANG</h1>
+      <p id="scanSub">Scan dengan barcode scanner atau ketik barcode manual.</p>
+    </div>
+    <button id="scanBack" type="button">← KEMBALI KE PL</button>
+  </div>
+
+  <div class="panel">
+    <div class="stepTitle">
+      <span>3</span>
+      <div><h2>SCAN / INPUT BARCODE</h2><p>Barcode scanner bisa langsung digunakan. Untuk manual, ketik barcode lalu tekan Enter atau tombol TAMBAH.</p></div>
+    </div>
+
+    <div class="scanEntry">
+      <div class="field scanInputWrap">
+        <label>BARCODE</label>
+        <input id="scanBarcode" type="text" inputmode="numeric" autocomplete="off" placeholder="Scan atau ketik barcode di sini...">
+        <small id="scanHelp">Scanner USB/Bluetooth biasanya otomatis mengisi kolom ini lalu mengirim Enter.</small>
+      </div>
+      <button id="addScanBtn" class="orange" type="button">＋ TAMBAH SCAN</button>
+    </div>
+
+    <div id="scanMessage" class="notice hidden"></div>
+
+    <div class="summary scanSummary">
+      <div><b id="scanLineCount">0</b><span>BARIS PL</span></div>
+      <div><b id="scanExpected">0</b><span>QTY PL</span></div>
+      <div><b id="scanActual">0</b><span>QTY SCAN</span></div>
+      <div><b id="scanBalance">0</b><span>BALANCE</span></div>
+    </div>
+
+    <div class="tableWrap">
+      <table>
+        <thead><tr>
+          <th>NO.</th><th>BARCODE</th><th>SKU</th><th>QTY PL</th><th>QTY SCAN</th><th>BALANCE</th><th>STATUS</th>
+        </tr></thead>
+        <tbody id="scanBody"></tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <button id="resetScanBtn" type="button">RESET QTY SCAN</button>
+      <button id="postBtn" class="orange" type="button" disabled>POSTING GOODS RECEIVING</button>
+    </div>
+  </div>
+</section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -202,7 +252,7 @@ function renderSupplier(selected){
   else el('supplierWarning').classList.add('hidden');
 }
 function show(view){
-  ['listView','formView','importView'].forEach(function(id){el(id).classList.add('hidden');});
+  ['listView','formView','importView','scanView'].forEach(function(id){el(id).classList.add('hidden');});
   el(view).classList.remove('hidden');
 }
 function showForm(){
@@ -220,7 +270,7 @@ function openDoc(id){
   load();current=null;
   docs.forEach(function(d){if(d.id===id)current=d;});
   if(!current){alert('Data Goods Receiving tidak ditemukan.');return;}
-  if(Array.isArray(current.items)&&current.items.length)showImport();else showForm();
+  if(Array.isArray(current.items)&&current.items.length&&text(current.status).toUpperCase().indexOf('SCANNING')!==-1)showScan();else if(Array.isArray(current.items)&&current.items.length&&text(current.status).toUpperCase().indexOf('POSTED')!==-1)showScan();else if(Array.isArray(current.items)&&current.items.length)showImport();else showForm();
 }
 function deleteDraft(id){
   load();
@@ -395,7 +445,85 @@ function importFile(){
   };
   reader.readAsArrayBuffer(file);
 }
-function continueScan(){if(!current||!current.items||!current.items.length)return;alert('Tahap berikutnya adalah SCAN BARANG. Kita akan membuat halaman scan dengan Qty PL, Qty Scan, dan Balance tanpa mengubah stok sampai Balance = 0 dan POSTING.');}
+function showScan(){
+  if(!current||!Array.isArray(current.items)||!current.items.length)return;
+  current.items.forEach(function(it){if(!isFinite(Number(it.scanQty)))it.scanQty=0;});
+  show('scanView');
+  el('scanSub').textContent='PL '+current.plNo+' • '+current.supplierName+' • Scan dengan scanner atau ketik barcode.';
+  renderScan();
+  setTimeout(function(){el('scanBarcode').focus();},50);
+}
+function scanNotice(msg,ok){
+  var n=el('scanMessage');n.textContent=msg;n.classList.remove('hidden');
+  n.classList.toggle('ok',!!ok);
+}
+function clearScanNotice(){var n=el('scanMessage');n.classList.add('hidden');n.classList.remove('ok');}
+function renderScan(){
+  var body=el('scanBody'),items=(current&&Array.isArray(current.items))?current.items:[];
+  var expected=0,actual=0,balance=0;
+  body.innerHTML='';
+  items.forEach(function(it,i){
+    var exp=Number(it.expectedQty)||0,sc=Number(it.scanQty)||0,bal=exp-sc;
+    expected+=exp;actual+=sc;balance+=bal;
+    var done=bal===0;
+    body.innerHTML+='<tr><td>'+(i+1)+'</td><td><b>'+esc(it.barcode)+'</b></td><td>'+esc(it.sku||'-')+'</td><td>'+exp+'</td><td><b>'+sc+'</b></td><td class="'+(done?'balanceZero':'balanceOpen')+'">'+bal+'</td><td class="'+(done?'statusDone':'statusOpen')+'">'+(done?'✓ BALANCE':'MENUNGGU')+'</td></tr>';
+  });
+  el('scanLineCount').textContent=items.length;
+  el('scanExpected').textContent=expected;
+  el('scanActual').textContent=actual;
+  el('scanBalance').textContent=balance;
+  el('postBtn').disabled=!(items.length&&balance===0);
+}
+function addScan(){
+  if(!current||!Array.isArray(current.items)||!current.items.length)return;
+  var barcode=text(el('scanBarcode').value).trim();
+  if(!barcode){el('scanBarcode').focus();return;}
+  var item=null;
+  for(var i=0;i<current.items.length;i++){
+    if(text(current.items[i].barcode).trim()===barcode){item=current.items[i];break;}
+  }
+  if(!item){
+    scanNotice('Barcode '+barcode+' tidak ditemukan di Packing List ini.',false);
+    el('scanBarcode').select();
+    return;
+  }
+  var exp=Number(item.expectedQty)||0,sc=Number(item.scanQty)||0;
+  if(sc>=exp){
+    scanNotice('Qty PL untuk barcode '+barcode+' sudah lengkap ('+exp+'/'+exp+'). Tidak dapat menambah scan lagi.',false);
+    el('scanBarcode').select();
+    return;
+  }
+  item.scanQty=sc+1;
+  current.status='DRAFT - SCANNING';
+  current.updatedAt=new Date().toISOString();
+  persistCurrent();
+  el('scanBarcode').value='';
+  clearScanNotice();
+  renderScan();
+  el('scanBarcode').focus();
+}
+function resetScan(){
+  if(!current||!Array.isArray(current.items)||!current.items.length)return;
+  if(!confirm('Reset semua Qty Scan menjadi 0? Packing List tidak akan dihapus.'))return;
+  current.items.forEach(function(it){it.scanQty=0;});
+  current.status='DRAFT - PL INPUT';
+  current.updatedAt=new Date().toISOString();
+  persistCurrent();clearScanNotice();renderScan();
+  el('scanBarcode').focus();
+}
+function postGoodsReceiving(){
+  if(!current||!Array.isArray(current.items)||!current.items.length)return;
+  var allBalance=current.items.every(function(it){return (Number(it.expectedQty)||0)===(Number(it.scanQty)||0);});
+  if(!allBalance){scanNotice('Belum bisa POSTING. Semua Qty Scan harus sama dengan Qty PL dan Balance harus 0.',false);return;}
+  if(!confirm('POSTING Goods Receiving PL '+current.plNo+'? Setelah POSTING, transaksi ini tidak boleh dihapus dari Draft.'))return;
+  current.status='POSTED';
+  current.postedAt=new Date().toISOString();
+  current.updatedAt=new Date().toISOString();
+  persistCurrent();
+  scanNotice('Goods Receiving berhasil POSTING. PL sudah balance 0.',true);
+  renderScan();
+}
+function continueScan(){if(!current||!current.items||!current.items.length)return;showScan();}
 function bind(id,fn){var n=el(id);if(n)n.addEventListener('click',fn);}
 function init(){
   load();show('listView');renderList();
@@ -403,16 +531,18 @@ function init(){
   bind('deleteCurrentBtn',function(){if(current&&current.id)deleteDraft(current.id);else backToList();});
   bind('deleteCurrentImportBtn',function(){if(current&&current.id)deleteDraft(current.id);else backToList();});
   bind('importBack',backToList);bind('replaceImportBtn',function(){el('plFile').click();});bind('continueScanBtn',continueScan);
+  bind('scanBack',showImport);bind('addScanBtn',addScan);bind('resetScanBtn',resetScan);bind('postBtn',postGoodsReceiving);
   bind('toggleManualBtn',function(){var f=el('manualForm');f.classList.toggle('hidden');if(!f.classList.contains('hidden')){renderManualProducts();el('manualSearch').focus();}});
   bind('addManualBtn',addManualItem);
   el('plFile').addEventListener('change',importFile);
   el('search').addEventListener('input',renderList);
   el('manualSearch').addEventListener('input',renderManualProducts);
   el('manualProduct').addEventListener('change',updateManualInfo);
+  el('scanBarcode').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addScan();}});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-<!-- GR_IMPORT_PL_MANUAL_DELETE_DRAFT_20260831_FINAL -->
+<!-- GR_IMPORT_PL_MANUAL_SCAN_BARCODE_20260831_FINAL -->
 </body>
 </html>
