@@ -1,11 +1,16 @@
-# SYSTEMQ v1.6
+# SYSTEMQ v1.7 — SUPPLIER & AUTO FILTER
 
-Perbaikan:
-- Tulisan "FILTER MASTER" dihapus.
-- Tulisan pilihan filter dibuat lebih tebal.
-- Tombol ADD sudah membuka form input.
-- UPDATE mengedit data yang dipilih.
-- DELETE menghapus data yang dipilih.
-- EXPORT EXCEL menghasilkan file CSV yang dapat dibuka di Excel.
-- MASTER BARANG memiliki UPDATE DISKON dan IMPORT CSV.
-- Perbaikan kompatibilitas JavaScript agar fungsi tombol tidak bergantung pada ID global browser.
+## Tambahan
+- Master SUPPLIER ditambahkan ke Filter Master.
+- Supplier memiliki kode, nama, alamat, nomor HP, dan status.
+- Saat tambah/update BRAND, kolom Supplier otomatis mengambil data dari Master Supplier.
+- Saat REGISTER BARANG, pilihan BRAND, SUPPLIER, SPARE, WARNA, dan SIZE otomatis mengambil data yang sudah dibuat di Master Global.
+- Size diambil dari daftar size yang sudah dimasukkan pada KOLOM SIZE.
+
+## Urutan input yang disarankan
+1. SUPPLIER
+2. BRAND
+3. SPARE
+4. WARNA
+5. KOLOM SIZE
+6. MASTER BARANG / REGISTER BARANG

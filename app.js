@@ -1,5 +1,4 @@
-
-const STORAGE_KEY = 'systemq_v16_data';
+const STORAGE_KEY = 'systemq_v17_data';
 
 const SCHEMA = {
   store: {
@@ -21,12 +20,22 @@ const SCHEMA = {
       ['status','STATUS','select',['ACTIVE','INACTIVE']]
     ]
   },
+  supplier: {
+    title: 'SUPPLIER',
+    fields: [
+      ['code','KODE SUPPLIER'],
+      ['name','NAMA SUPPLIER'],
+      ['address','ALAMAT'],
+      ['phone','NO HP'],
+      ['status','STATUS','select',['ACTIVE','INACTIVE']]
+    ]
+  },
   brand: {
     title: 'BRAND',
     fields: [
       ['code','KODE BRAND'],
       ['name','NAMA BRAND'],
-      ['supplier','SUPPLIER'],
+      ['supplier','SUPPLIER','dynamic','supplier'],
       ['newArrival','NEW ARRIVAL','select',['YA','TIDAK']],
       ['discount','DISKON %'],
       ['margin','MARGIN'],
@@ -54,22 +63,23 @@ const SCHEMA = {
     fields: [
       ['code','KODE SIZE'],
       ['type','JENIS SIZE'],
-      ['sizes','DAFTAR SIZE'],
+      ['sizes','DAFTAR SIZE (pisahkan dengan koma)'],
       ['status','STATUS','select',['ACTIVE','INACTIVE']]
     ]
   },
   product: {
     title: 'MASTER BARANG',
     fields: [
-      ['brand','BRAND'],
+      ['brand','BRAND','dynamic','brand'],
+      ['supplier','SUPPLIER','dynamic','supplier'],
       ['sku','SKU'],
       ['name','NAMA BARANG'],
       ['barcode','BARCODE'],
-      ['spare','SPARE'],
-      ['color','WARNA'],
+      ['spare','SPARE','dynamic','spare'],
+      ['color','WARNA','dynamic','color'],
       ['price','HARGA JUAL'],
       ['discount','DISKON %'],
-      ['size','SIZE'],
+      ['size','SIZE','dynamic','size'],
       ['status','STATUS','select',['ACTIVE','INACTIVE']]
     ]
   }
@@ -84,37 +94,20 @@ let currentType = 'store';
 let selectedIndex = null;
 let editingIndex = null;
 
-function $(id) {
-  return document.getElementById(id);
-}
-
-function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-}
-
-function currentSchema() {
-  return SCHEMA[currentType];
-}
-
-function currentFields() {
-  return currentSchema().fields;
-}
-
-function title() {
-  return currentSchema().title;
-}
+function $(id) { return document.getElementById(id); }
+function persist() { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+function currentSchema() { return SCHEMA[currentType]; }
+function currentFields() { return currentSchema().fields; }
+function title() { return currentSchema().title; }
 
 function escapeHtml(value) {
   return String(value ?? '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#039;');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
 function show(id) {
-  document.querySelectorAll('main section').forEach(section => section.classList.add('hidden'));
+  document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
   const target = $(id);
   if (target) target.classList.remove('hidden');
 }
@@ -130,9 +123,7 @@ function setType(value) {
   const tableTitle = $('tableTitle');
   if (tableTitle) tableTitle.textContent = title();
 
-  const search = $('search');
-  if (search) search.value = '';
-
+  if ($('search')) $('search').value = '';
   render();
 }
 
@@ -142,8 +133,8 @@ function render() {
     Object.values(record).join(' ').toLowerCase().includes(searchValue)
   );
 
-  $('head').innerHTML =
-    '<tr>' + currentFields().map(field => '<th>' + escapeHtml(field[1]) + '</th>').join('') + '</tr>';
+  $('head').innerHTML = '<tr>' + currentFields()
+    .map(field => '<th>' + escapeHtml(field[1]) + '</th>').join('') + '</tr>';
 
   if (!rows.length) {
     $('body').innerHTML =
@@ -153,11 +144,9 @@ function render() {
     $('body').innerHTML = rows.map(record => {
       const realIndex = db[currentType].indexOf(record);
       const rowClass = realIndex === selectedIndex ? 'selected' : '';
-      const cells = currentFields().map(field => {
-        const value = record[field[0]];
-        return '<td>' + escapeHtml(value || '-') + '</td>';
-      }).join('');
-
+      const cells = currentFields().map(field =>
+        '<td>' + escapeHtml(record[field[0]] || '-') + '</td>'
+      ).join('');
       return '<tr class="' + rowClass + '" data-index="' + realIndex + '">' + cells + '</tr>';
     }).join('');
 
@@ -170,6 +159,49 @@ function render() {
   }
 
   $('count').textContent = rows.length + ' DATA';
+}
+
+function activeRecords(type) {
+  return (db[type] || []).filter(item => !item.status || item.status === 'ACTIVE');
+}
+
+function dynamicOptions(source) {
+  if (source === 'size') {
+    const values = [];
+    activeRecords('size').forEach(item => {
+      String(item.sizes || '').split(',').forEach(size => {
+        const clean = size.trim();
+        if (clean && !values.includes(clean)) values.push(clean);
+      });
+    });
+    return values.map(value => ({value, label: value}));
+  }
+
+  return activeRecords(source).map(item => ({
+    value: item.name || item.code || '',
+    label: item.code && item.name ? item.code + ' - ' + item.name : (item.name || item.code || '')
+  })).filter(item => item.value);
+}
+
+function renderDynamicSelect(field, value) {
+  const options = dynamicOptions(field[3]);
+  const currentExists = value && !options.some(o => o.value === value);
+
+  let html = '<select name="' + escapeHtml(field[0]) + '">';
+  html += '<option value="">-- PILIH ' + escapeHtml(field[1]) + ' --</option>';
+
+  if (currentExists) {
+    html += '<option value="' + escapeHtml(value) + '" selected>' + escapeHtml(value) + '</option>';
+  }
+
+  html += options.map(option =>
+    '<option value="' + escapeHtml(option.value) + '"' +
+    (value === option.value ? ' selected' : '') + '>' +
+    escapeHtml(option.label) + '</option>'
+  ).join('');
+
+  html += '</select>';
+  return html;
 }
 
 function add() {
@@ -199,21 +231,24 @@ function openForm() {
     const options = field[3] || [];
     const value = record[key] || '';
 
+    let control = '';
+
     if (kind === 'select') {
-      return '<div class="field"><label>' + escapeHtml(label) + '</label>' +
-        '<select name="' + escapeHtml(key) + '">' +
+      control = '<select name="' + escapeHtml(key) + '">' +
         options.map(option =>
           '<option value="' + escapeHtml(option) + '"' +
           (value === option ? ' selected' : '') + '>' +
           escapeHtml(option) + '</option>'
-        ).join('') +
-        '</select></div>';
+        ).join('') + '</select>';
+    } else if (kind === 'dynamic') {
+      control = renderDynamicSelect(field, value);
+    } else {
+      const inputType = ['commission','discount','margin','price'].includes(key) ? 'number' : 'text';
+      control = '<input type="' + inputType + '" name="' + escapeHtml(key) +
+        '" value="' + escapeHtml(value) + '">';
     }
 
-    const inputType = ['commission','discount','margin','price'].includes(key) ? 'number' : 'text';
-    return '<div class="field"><label>' + escapeHtml(label) + '</label>' +
-      '<input type="' + inputType + '" name="' + escapeHtml(key) +
-      '" value="' + escapeHtml(value) + '"></div>';
+    return '<div class="field"><label>' + escapeHtml(label) + '</label>' + control + '</div>';
   }).join('');
 
   $('form').innerHTML = html + '<button class="orange" type="submit">SIMPAN</button>';
@@ -248,11 +283,8 @@ function save(event) {
     }
   }
 
-  if (editingIndex === null) {
-    db[currentType].push(record);
-  } else {
-    db[currentType][editingIndex] = record;
-  }
+  if (editingIndex === null) db[currentType].push(record);
+  else db[currentType][editingIndex] = record;
 
   selectedIndex = null;
   editingIndex = null;
@@ -266,7 +298,6 @@ function del() {
     alert('Pilih data terlebih dahulu.');
     return;
   }
-
   if (!confirm('Hapus data yang dipilih?')) return;
 
   db[currentType].splice(selectedIndex, 1);
@@ -278,21 +309,14 @@ function del() {
 function exportData() {
   const rows = [
     currentFields().map(field => field[1]),
-    ...db[currentType].map(record =>
-      currentFields().map(field => record[field[0]] || '')
-    )
+    ...db[currentType].map(record => currentFields().map(field => record[field[0]] || ''))
   ];
 
-  const csv = rows
-    .map(row => row.map(value =>
-      '"' + String(value).replace(/"/g, '""') + '"'
-    ).join(','))
-    .join('\n');
+  const csv = rows.map(row =>
+    row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(',')
+  ).join('\n');
 
-  const blob = new Blob(['\ufeff' + csv], {
-    type: 'text/csv;charset=utf-8;'
-  });
-
+  const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = 'SYSTEMQ_' + currentType.toUpperCase() + '.csv';
@@ -317,10 +341,7 @@ function discount() {
     return;
   }
 
-  db.product.forEach(item => {
-    item.discount = String(number);
-  });
-
+  db.product.forEach(item => item.discount = String(number));
   persist();
   render();
   alert('Diskon berhasil diperbarui.');
@@ -331,21 +352,14 @@ function importCSV(event) {
   if (!file) return;
 
   const reader = new FileReader();
-
   reader.onload = () => {
     const text = String(reader.result || '').replace(/^\uFEFF/, '').trim();
-    if (!text) {
-      alert('File kosong.');
-      return;
-    }
+    if (!text) return alert('File kosong.');
 
     const lines = text.split(/\r?\n/).filter(Boolean);
-    if (lines.length < 2) {
-      alert('CSV harus memiliki header dan minimal satu data.');
-      return;
-    }
+    if (lines.length < 2) return alert('CSV harus memiliki header dan minimal satu data.');
 
-    const headers = parseCSVLine(lines.shift()).map(item => item.trim().toLowerCase());
+    const headers = parseCSVLine(lines.shift()).map(x => x.trim().toLowerCase());
     let imported = 0;
 
     lines.forEach(line => {
@@ -382,22 +396,16 @@ function parseCSVLine(line) {
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-
     if (char === '"') {
       if (quoted && line[i + 1] === '"') {
         current += '"';
         i++;
-      } else {
-        quoted = !quoted;
-      }
+      } else quoted = !quoted;
     } else if (char === ',' && !quoted) {
       result.push(current);
       current = '';
-    } else {
-      current += char;
-    }
+    } else current += char;
   }
-
   result.push(current);
   return result;
 }
