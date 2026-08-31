@@ -46,7 +46,8 @@ function supplierKey(s){
 function renderSupplier(selected=''){
   const suppliers = activeSuppliers();
   $('grSupplier').innerHTML = '<option value="">-- PILIH SUPPLIER --</option>' +
-    suppliers.map(s => `<option value="${esc(supplierKey(s))">${esc(supplierLabel(s))}</option>`).join('');
+    suppliers.map(s => '<option value="' + esc(supplierKey(s)) + '">' +
+      esc(supplierLabel(s)) + '</option>').join('');
   $('grSupplier').value = selected || '';
 }
 
