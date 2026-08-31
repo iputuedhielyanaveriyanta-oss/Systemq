@@ -70,16 +70,20 @@ const SCHEMA = {
   product: {
     title: 'MASTER BARANG',
     fields: [
-      ['brand','BRAND','dynamic','brand'],
-      ['supplier','SUPPLIER','dynamic','supplier'],
+      ['brand','BRAND','productBrand'],
+      ['group','KELOMPOK','productGroup'],
+      ['supplier','SUPPLIER','productSupplier'],
       ['sku','SKU'],
       ['name','NAMA BARANG'],
       ['barcode','BARCODE'],
       ['spare','SPARE','dynamic','spare'],
       ['color','WARNA','dynamic','color'],
       ['price','HARGA JUAL'],
-      ['discount','DISKON %'],
-      ['size','SIZE','dynamic','size'],
+      ['promo','PROMO','readonly'],
+      ['discount','DISKON %','readonly'],
+      ['margin','MARGIN %','readonly'],
+      ['sizeCode','KODE SIZE','sizeCode'],
+      ['size','SIZE','sizeValue'],
       ['status','STATUS','select',['ACTIVE','INACTIVE']]
     ]
   }
@@ -89,6 +93,8 @@ let db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 Object.keys(SCHEMA).forEach(key => {
   if (!Array.isArray(db[key])) db[key] = [];
 });
+if (!db.brandPromos || typeof db.brandPromos !== 'object') db.brandPromos = {};
+
 
 let currentType = 'store';
 let selectedIndex = null;
@@ -218,50 +224,208 @@ function edit() {
   openForm();
 }
 
-function openForm() {
-  const record = editingIndex === null ? {} : db[currentType][editingIndex];
 
-  $('modalTitle').textContent =
-    (editingIndex === null ? 'Tambah ' : 'Update ') + title();
+function brandRecord(value) {
+  return activeRecords('brand').find(item =>
+    String(item.name || item.code || '').trim() === String(value || '').trim()
+  ) || null;
+}
 
-  const html = currentFields().map(field => {
-    const key = field[0];
-    const label = field[1];
-    const kind = field[2];
-    const options = field[3] || [];
-    const value = record[key] || '';
+function brandPromoKey(brand) {
+  return String((brand && (brand.code || brand.name)) || '').trim();
+}
 
+function getBrandPromos(brandValue) {
+  const brand = brandRecord(brandValue);
+  const key = brandPromoKey(brand);
+  return key && Array.isArray(db.brandPromos[key]) ? db.brandPromos[key] : [];
+}
+
+function groupLabel(item, index) {
+  return String(item.group || '').trim() ||
+         String(item.promo || '').trim() ||
+         ('PROMO ' + (index + 1));
+}
+
+function productBrandSelect(value) {
+  const options = dynamicOptions('brand');
+  let html = '<select name="brand" id="productBrand" onchange="onProductBrandChange(this.value)">';
+  html += '<option value="">-- PILIH BRAND --</option>';
+  html += options.map(o => '<option value="' + escapeHtml(o.value) + '"' +
+    (String(value) === String(o.value) ? ' selected' : '') + '>' +
+    escapeHtml(o.label) + '</option>').join('');
+  return html + '</select>';
+}
+
+function productGroupSelect(brandValue, value) {
+  const promos = getBrandPromos(brandValue);
+  let html = '<select name="group" id="productGroup" onchange="onProductGroupChange(this.value)">';
+  html += '<option value="">-- PILIH KELOMPOK --</option>';
+  html += promos.map((item, i) => {
+    const label = groupLabel(item, i);
+    return '<option value="' + escapeHtml(label) + '"' +
+      (String(value) === String(label) ? ' selected' : '') + '>' +
+      escapeHtml(label) + '</option>';
+  }).join('');
+  return html + '</select>';
+}
+
+function productSupplierSelect(value) {
+  const options = dynamicOptions('supplier');
+  let html = '<select name="supplier" id="productSupplier">';
+  html += '<option value="">-- PILIH SUPPLIER --</option>';
+  html += options.map(o => '<option value="' + escapeHtml(o.value) + '"' +
+    (String(value) === String(o.value) ? ' selected' : '') + '>' +
+    escapeHtml(o.label) + '</option>').join('');
+  return html + '</select>';
+}
+
+function sizeCodeSelect(value) {
+  const records = activeRecords('size');
+  let html = '<select name="sizeCode" id="productSizeCode" onchange="onSizeCodeChange(this.value)">';
+  html += '<option value="">-- PILIH KODE SIZE --</option>';
+  html += records.map(item => {
+    const code = String(item.code || '').trim();
+    const sizes = String(item.sizes || '').trim();
+    return '<option value="' + escapeHtml(code) + '"' +
+      (String(value) === code ? ' selected' : '') + '>' +
+      escapeHtml(code + (sizes ? ' = ' + sizes : '')) + '</option>';
+  }).join('');
+  return html + '</select>';
+}
+
+function sizeValueSelect(code, value) {
+  const master = activeRecords('size').find(item =>
+    String(item.code || '').trim() === String(code || '').trim()
+  );
+  const sizes = master ? String(master.sizes || '').split(',').map(x => x.trim()).filter(Boolean) : [];
+  let html = '<select name="size" id="productSize">';
+  html += '<option value="">-- PILIH SIZE --</option>';
+  html += sizes.map(s => '<option value="' + escapeHtml(s) + '"' +
+    (String(value) === s ? ' selected' : '') + '>' + escapeHtml(s) + '</option>').join('');
+  return html + '</select>';
+}
+
+function onSizeCodeChange(code) {
+  const wrap = $('productSizeWrap');
+  if (wrap) wrap.innerHTML = '<label>SIZE</label>' + sizeValueSelect(code, '');
+}
+
+function onProductBrandChange(value) {
+  const groupWrap = $('productGroupWrap');
+  if (groupWrap) groupWrap.innerHTML = '<label>KELOMPOK</label>' + productGroupSelect(value, '');
+  const brand = brandRecord(value);
+  const supplier = $('productSupplier');
+  if (supplier && brand && brand.supplier) supplier.value = brand.supplier;
+  const promo = $('productPromo');
+  const discount = $('productDiscount');
+  const margin = $('productMargin');
+  if (promo) promo.value = '';
+  if (discount) discount.value = '';
+  if (margin) margin.value = '';
+}
+
+function onProductGroupChange(value) {
+  const brandValue = $('productBrand') ? $('productBrand').value : '';
+  const promos = getBrandPromos(brandValue);
+  const item = promos.find((x, i) => groupLabel(x, i) === String(value || ''));
+  if ($('productPromo')) $('productPromo').value = item ? (item.promo || '') : '';
+  if ($('productDiscount')) $('productDiscount').value = item ? (item.discount || '') : '';
+  if ($('productMargin')) $('productMargin').value = item ? (item.margin || '') : '';
+}
+
+function openProductForm(record) {
+  const r = record || {};
+  const html = [
+    '<div class="field"><label>BRAND</label>' + productBrandSelect(r.brand || '') + '</div>',
+    '<div class="field" id="productGroupWrap"><label>KELOMPOK</label>' + productGroupSelect(r.brand || '', r.group || '') + '</div>',
+    '<div class="field"><label>SUPPLIER</label>' + productSupplierSelect(r.supplier || '') + '</div>',
+    '<div class="field"><label>SKU</label><input name="sku" value="' + escapeHtml(r.sku || '') + '"></div>',
+    '<div class="field"><label>NAMA BARANG</label><input name="name" value="' + escapeHtml(r.name || '') + '"></div>',
+    '<div class="field"><label>BARCODE</label><input name="barcode" value="' + escapeHtml(r.barcode || '') + '"></div>',
+    '<div class="field"><label>SPARE</label>' + renderDynamicSelect(['spare','SPARE','dynamic','spare'], r.spare || '') + '</div>',
+    '<div class="field"><label>WARNA</label>' + renderDynamicSelect(['color','WARNA','dynamic','color'], r.color || '') + '</div>',
+    '<div class="field"><label>HARGA JUAL</label><input type="number" step="any" name="price" value="' + escapeHtml(r.price || '') + '"></div>',
+    '<div class="field"><label>PROMO</label><input id="productPromo" name="promo" readonly value="' + escapeHtml(r.promo || '') + '"></div>',
+    '<div class="field"><label>DISKON %</label><input id="productDiscount" name="discount" readonly value="' + escapeHtml(r.discount || '') + '"></div>',
+    '<div class="field"><label>MARGIN %</label><input id="productMargin" name="margin" readonly value="' + escapeHtml(r.margin || '') + '"></div>',
+    '<div class="field"><label>KODE SIZE</label>' + sizeCodeSelect(r.sizeCode || '') + '</div>',
+    '<div class="field" id="productSizeWrap"><label>SIZE</label>' + sizeValueSelect(r.sizeCode || '', r.size || '') + '</div>',
+    '<div class="field"><label>STATUS</label><select name="status"><option value="ACTIVE"' + ((r.status || 'ACTIVE') === 'ACTIVE' ? ' selected' : '') + '>ACTIVE</option><option value="INACTIVE"' + (r.status === 'INACTIVE' ? ' selected' : '') + '>INACTIVE</option></select></div>'
+  ].join('');
+  $('form').innerHTML = html + '<button class="orange" type="submit">SIMPAN</button>';
+}
+
+function openBrandForm(record) {
+  const r = record || {};
+  const key = brandPromoKey(r);
+  const promos = (key && db.brandPromos[key]) || [];
+  let promoRows = promos.map((p, i) =>
+    '<div class="promo-row" data-promo-row="' + i + '">' +
+    '<input placeholder="KELOMPOK" value="' + escapeHtml(p.group || '') + '">' +
+    '<input placeholder="PROMO" value="' + escapeHtml(p.promo || '') + '">' +
+    '<input type="number" step="any" placeholder="DISKON %" value="' + escapeHtml(p.discount || '') + '">' +
+    '<input type="number" step="any" placeholder="MARGIN %" value="' + escapeHtml(p.margin || '') + '">' +
+    '<button type="button" onclick="this.parentElement.remove()">×</button></div>'
+  ).join('');
+
+  const base = currentFields().map(field => {
+    const key = field[0], label = field[1], kind = field[2], options = field[3] || [], value = r[key] || '';
     let control = '';
-
-    if (kind === 'select') {
-      control = '<select name="' + escapeHtml(key) + '">' +
-        options.map(option =>
-          '<option value="' + escapeHtml(option) + '"' +
-          (value === option ? ' selected' : '') + '>' +
-          escapeHtml(option) + '</option>'
-        ).join('') + '</select>';
-    } else if (kind === 'dynamic') {
-      control = renderDynamicSelect(field, value);
-    } else {
-      const inputType = ['commission','discount','margin','price'].includes(key) ? 'number' : 'text';
-      control = '<input type="' + inputType + '" name="' + escapeHtml(key) +
-        '" value="' + escapeHtml(value) + '">';
-    }
-
+    if (kind === 'select') control = '<select name="' + key + '">' + options.map(o => '<option value="' + escapeHtml(o) + '"' + (value === o ? ' selected' : '') + '>' + escapeHtml(o) + '</option>').join('') + '</select>';
+    else if (kind === 'dynamic') control = renderDynamicSelect(field, value);
+    else control = '<input ' + (['discount','margin'].includes(key) ? 'type="number" step="any" ' : '') + 'name="' + key + '" value="' + escapeHtml(value) + '">';
     return '<div class="field"><label>' + escapeHtml(label) + '</label>' + control + '</div>';
   }).join('');
 
-  $('form').innerHTML = html + '<button class="orange" type="submit">SIMPAN</button>';
-  $('modal').classList.remove('hidden');
+  $('form').innerHTML = base +
+    '<div class="promo-box"><label>PROMO / MARGIN BRAND</label><small>Isi kelompok lalu promo, diskon, dan margin. Bisa tambah lebih dari satu.</small><div id="brandPromoRows">' + promoRows + '</div><button type="button" class="secondary" onclick="addBrandPromoRow()">＋ ADD PROMO / MARGIN</button></div>' +
+    '<button class="orange" type="submit">SIMPAN</button>';
 }
 
+function addBrandPromoRow() {
+  const wrap = $('brandPromoRows');
+  if (!wrap) return;
+  const row = document.createElement('div');
+  row.className = 'promo-row';
+  row.innerHTML = '<input placeholder="KELOMPOK"><input placeholder="PROMO"><input type="number" step="any" placeholder="DISKON %"><input type="number" step="any" placeholder="MARGIN %"><button type="button" onclick="this.parentElement.remove()">×</button>';
+  wrap.appendChild(row);
+}
+
+function openForm() {
+  const record = editingIndex === null ? {} : db[currentType][editingIndex];
+  $('modalTitle').textContent = (editingIndex === null ? 'Tambah ' : 'Update ') + title();
+
+  if (currentType === 'product') {
+    openProductForm(record);
+  } else if (currentType === 'brand') {
+    openBrandForm(record);
+  } else {
+    const html = currentFields().map(field => {
+      const key = field[0], label = field[1], kind = field[2], options = field[3] || [], value = record[key] || '';
+      let control = '';
+      if (kind === 'select') {
+        control = '<select name="' + escapeHtml(key) + '">' + options.map(option =>
+          '<option value="' + escapeHtml(option) + '"' + (value === option ? ' selected' : '') + '>' + escapeHtml(option) + '</option>'
+        ).join('') + '</select>';
+      } else if (kind === 'dynamic') {
+        control = renderDynamicSelect(field, value);
+      } else {
+        const inputType = ['commission','discount','margin','price'].includes(key) ? 'number' : 'text';
+        control = '<input type="' + inputType + '" step="any" name="' + escapeHtml(key) + '" value="' + escapeHtml(value) + '">';
+      }
+      return '<div class="field"><label>' + escapeHtml(label) + '</label>' + control + '</div>';
+    }).join('');
+    $('form').innerHTML = html + '<button class="orange" type="submit">SIMPAN</button>';
+  }
+  $('modal').classList.remove('hidden');
+}
 function closeModal() {
   $('modal').classList.add('hidden');
 }
 
 function save(event) {
   event.preventDefault();
-
   const formData = new FormData($('form'));
   const record = {};
 
@@ -270,21 +434,40 @@ function save(event) {
   });
 
   const uniqueKey = currentType === 'product' ? 'sku' : 'code';
-
   if (record[uniqueKey]) {
     const duplicate = db[currentType].some((item, index) =>
       String(item[uniqueKey] || '').toLowerCase() === record[uniqueKey].toLowerCase() &&
       index !== editingIndex
     );
-
     if (duplicate) {
       alert(uniqueKey.toUpperCase() + ' sudah digunakan.');
       return;
     }
   }
 
-  if (editingIndex === null) db[currentType].push(record);
-  else db[currentType][editingIndex] = record;
+  if (currentType === 'brand') {
+    const old = editingIndex === null ? null : db.brand[editingIndex];
+    const oldKey = old ? brandPromoKey(old) : '';
+    if (editingIndex === null) db.brand.push(record);
+    else db.brand[editingIndex] = record;
+
+    const rows = [...document.querySelectorAll('#brandPromoRows .promo-row')].map(row => {
+      const inputs = row.querySelectorAll('input');
+      return {
+        group: String(inputs[0].value || '').trim(),
+        promo: String(inputs[1].value || '').trim(),
+        discount: String(inputs[2].value || '').trim(),
+        margin: String(inputs[3].value || '').trim()
+      };
+    }).filter(x => x.group || x.promo || x.discount || x.margin);
+
+    const newKey = brandPromoKey(record);
+    if (oldKey && oldKey !== newKey) delete db.brandPromos[oldKey];
+    if (newKey) db.brandPromos[newKey] = rows;
+  } else {
+    if (editingIndex === null) db[currentType].push(record);
+    else db[currentType][editingIndex] = record;
+  }
 
   selectedIndex = null;
   editingIndex = null;
@@ -292,7 +475,6 @@ function save(event) {
   closeModal();
   render();
 }
-
 function del() {
   if (selectedIndex === null) {
     alert('Pilih data terlebih dahulu.');

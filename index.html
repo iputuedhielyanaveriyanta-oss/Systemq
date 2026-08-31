@@ -1,4 +1,30 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SYSTEMQ</title><link rel="stylesheet" href="style.css"></head><body>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SYSTEMQ</title><link rel="stylesheet" href="style.css">
+<style>
+.modal{padding:12px!important;align-items:flex-start!important;overflow-y:auto!important}
+.modal .card{width:min(94vw,620px)!important;max-width:94vw!important;margin:12px auto!important;padding:22px!important;border-radius:22px!important}
+.modal h2{font-size:clamp(24px,7vw,38px)!important;margin:0 38px 18px 0!important}
+.field{margin:10px 0!important}
+.field label{font-size:16px!important;margin-bottom:5px!important}
+.field input,.field select{min-height:46px!important;padding:10px 12px!important;font-size:16px!important}
+#form{max-height:calc(100vh - 110px);overflow-y:auto;padding-right:3px}
+.promo-box{margin:14px 0;padding:12px;border:1px solid #d6dce3;border-radius:14px}
+.promo-box small{display:block;margin:5px 0 10px;color:#68727c}
+.promo-row{display:grid;grid-template-columns:1fr 1fr .7fr .7fr 34px;gap:6px;margin-bottom:7px}
+.promo-row input{min-width:0!important}
+.promo-row button{padding:0!important;min-height:42px!important}
+@media(max-width:600px){
+  .modal{padding:6px!important}
+  .modal .card{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;margin:4px auto!important;padding:18px 16px!important;border-radius:18px!important}
+  .modal h2{font-size:28px!important;margin-bottom:14px!important}
+  .field{margin:7px 0!important}
+  .field label{font-size:15px!important}
+  .field input,.field select{min-height:42px!important;padding:8px 10px!important;font-size:15px!important}
+  #form{max-height:calc(100vh - 85px)}
+  .promo-row{grid-template-columns:1fr 1fr;gap:5px}
+  .promo-row button{grid-column:2;max-width:44px}
+}
+</style>
+</head><body>
 <header><div><b>SYSTEMQ</b><small>SYSTEM TOKO</small></div><nav><button onclick="show('master')">MASTER GLOBAL</button><button onclick="show('inventory')">INVENTORY</button><button onclick="show('report')">LAPORAN</button><button onclick="show('finance')">FINANCE & AKUNTING</button></nav></header>
 <main>
 <section id="master"><h1>MASTER GLOBAL</h1><p>Kelola seluruh data master yang digunakan bersama oleh semua store.</p>
