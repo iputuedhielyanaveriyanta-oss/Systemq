@@ -1,3 +1,11 @@
-# SYSTEMQ v1.5 — MASTER GLOBAL
+# SYSTEMQ v1.6
 
-MASTER diubah menjadi MASTER GLOBAL dan seluruh pilihan STORE, GUIDE, BRAND, SPARE, WARNA, KOLOM SIZE, dan MASTER BARANG dipindahkan ke satu FILTER MASTER agar tampilan lebih ringkas.
+Perbaikan:
+- Tulisan "FILTER MASTER" dihapus.
+- Tulisan pilihan filter dibuat lebih tebal.
+- Tombol ADD sudah membuka form input.
+- UPDATE mengedit data yang dipilih.
+- DELETE menghapus data yang dipilih.
+- EXPORT EXCEL menghasilkan file CSV yang dapat dibuka di Excel.
+- MASTER BARANG memiliki UPDATE DISKON dan IMPORT CSV.
+- Perbaikan kompatibilitas JavaScript agar fungsi tombol tidak bergantung pada ID global browser.
