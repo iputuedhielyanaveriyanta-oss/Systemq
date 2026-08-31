@@ -36,9 +36,6 @@ const SCHEMA = {
       ['code','KODE BRAND'],
       ['name','NAMA BRAND'],
       ['supplier','SUPPLIER','dynamic','supplier'],
-      ['newArrival','NEW ARRIVAL','select',['YA','TIDAK']],
-      ['discount','DISKON %'],
-      ['margin','MARGIN'],
       ['status','STATUS','select',['ACTIVE','INACTIVE']]
     ]
   },
@@ -218,6 +215,23 @@ function edit() {
   openForm();
 }
 
+function brandGroupsHtml(groups) {
+  const safeGroups = Array.isArray(groups) ? groups : [];
+  const rows = safeGroups.length ? safeGroups : [{name:'', margin:''}];
+
+  return '<div class="brand-groups">' +
+    '<div class="brand-groups-head"><b>KELOMPOK PROMO / HARGA</b><span>MARGIN</span><span></span></div>' +
+    '<div id="brandGroupsRows">' + rows.map(group =>
+      '<div class="brand-group-row">' +
+      '<input type="text" class="brand-group-name" placeholder="Contoh: New Arrival / Diskon 30%" value="' + escapeHtml(group.name || '') + '">' +
+      '<div class="margin-input"><input type="number" min="0" step="0.01" class="brand-group-margin" placeholder="40" value="' + escapeHtml(group.margin || '') + '"><span>%</span></div>' +
+      '<button type="button" class="group-delete red" onclick="removeBrandGroup(this)">HAPUS</button>' +
+      '</div>'
+    ).join('') + '</div>' +
+    '<button type="button" class="orange add-group-btn" onclick="addBrandGroup()">＋ ADD KELOMPOK</button>' +
+    '</div>';
+}
+
 function openForm() {
   const record = editingIndex === null ? {} : db[currentType][editingIndex];
 
@@ -251,16 +265,49 @@ function openForm() {
     return '<div class="field"><label>' + escapeHtml(label) + '</label>' + control + '</div>';
   }).join('');
 
-  $('form').innerHTML = html + '<button class="orange" type="submit">SIMPAN</button>';
+  const brandGroups = currentType === 'brand'
+    ? brandGroupsHtml(record.groups || [])
+    : '';
+
+  $('form').innerHTML = html + brandGroups +
+    '<button class="orange" type="button" onclick="saveData(event)">SIMPAN</button>';
+
   $('modal').classList.remove('hidden');
+}
+
+function addBrandGroup() {
+  const rows = $('brandGroupsRows');
+  if (!rows) return;
+
+  const row = document.createElement('div');
+  row.className = 'brand-group-row';
+  row.innerHTML =
+    '<input type="text" class="brand-group-name" placeholder="Contoh: New Arrival / Diskon 30%">' +
+    '<div class="margin-input"><input type="number" min="0" step="0.01" class="brand-group-margin" placeholder="40"><span>%</span></div>' +
+    '<button type="button" class="group-delete red" onclick="removeBrandGroup(this)">HAPUS</button>';
+  rows.appendChild(row);
+}
+
+function removeBrandGroup(button) {
+  const row = button.closest('.brand-group-row');
+  const rows = $('brandGroupsRows');
+  if (!row || !rows) return;
+
+  if (rows.children.length <= 1) {
+    row.querySelector('.brand-group-name').value = '';
+    row.querySelector('.brand-group-margin').value = '';
+    return;
+  }
+
+  row.remove();
 }
 
 function closeModal() {
   $('modal').classList.add('hidden');
 }
 
-function save(event) {
-  event.preventDefault();
+function saveData(event) {
+  if (event && typeof event.preventDefault === 'function') event.preventDefault();
 
   const formData = new FormData($('form'));
   const record = {};
@@ -268,6 +315,26 @@ function save(event) {
   currentFields().forEach(field => {
     record[field[0]] = String(formData.get(field[0]) || '').trim();
   });
+
+  if (currentType === 'brand') {
+    record.groups = [];
+    document.querySelectorAll('#brandGroupsRows .brand-group-row').forEach(row => {
+      const name = String(row.querySelector('.brand-group-name').value || '').trim();
+      const margin = String(row.querySelector('.brand-group-margin').value || '').trim();
+
+      if (name || margin) {
+        if (!name || !margin) {
+          alert('Setiap kelompok promo harus memiliki nama dan margin.');
+          record.__invalidGroup = true;
+          return;
+        }
+        record.groups.push({name, margin});
+      }
+    });
+  }
+
+  if (record.__invalidGroup) return;
+  delete record.__invalidGroup;
 
   const uniqueKey = currentType === 'product' ? 'sku' : 'code';
 
@@ -291,6 +358,10 @@ function save(event) {
   persist();
   closeModal();
   render();
+}
+
+function save(event) {
+  return saveData(event);
 }
 
 function del() {
@@ -411,6 +482,6 @@ function parseCSVLine(line) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  $('form').addEventListener('submit', save);
+  $('form').addEventListener('submit', saveData);
   setType('store');
 });

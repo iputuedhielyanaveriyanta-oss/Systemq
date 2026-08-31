@@ -1,16 +1,30 @@
-# SYSTEMQ v1.7 — SUPPLIER & AUTO FILTER
+# SYSTEMQ v1.9
 
-## Tambahan
-- Master SUPPLIER ditambahkan ke Filter Master.
-- Supplier memiliki kode, nama, alamat, nomor HP, dan status.
-- Saat tambah/update BRAND, kolom Supplier otomatis mengambil data dari Master Supplier.
-- Saat REGISTER BARANG, pilihan BRAND, SUPPLIER, SPARE, WARNA, dan SIZE otomatis mengambil data yang sudah dibuat di Master Global.
-- Size diambil dari daftar size yang sudah dimasukkan pada KOLOM SIZE.
+Perbaikan berdasarkan file SYSTEMQ terbaru:
 
-## Urutan input yang disarankan
-1. SUPPLIER
-2. BRAND
-3. SPARE
-4. WARNA
-5. KOLOM SIZE
-6. MASTER BARANG / REGISTER BARANG
+## GUIDE / SIMPAN
+- Tombol SIMPAN memakai `saveData()` langsung.
+- Tidak lagi bergantung pada inline `onsubmit="save(event)"`.
+- ADD, SIMPAN, UPDATE, dan DELETE menggunakan handler yang konsisten.
+
+## EDIT / UPDATE
+- UPDATE membuka data yang dipilih.
+- Setelah diubah, SIMPAN memperbarui data lama.
+
+## BRAND
+Data utama:
+- Kode Brand
+- Nama Brand
+- Supplier
+- Status
+
+Kelompok Promo / Harga dinamis:
+- Nama kelompok/promo
+- Margin %
+- + ADD KELOMPOK
+- HAPUS kelompok
+- Saat UPDATE, seluruh kelompok lama muncul kembali dan dapat diubah.
+
+Contoh:
+- New Arrival — 40%
+- Diskon 30% — 27%
