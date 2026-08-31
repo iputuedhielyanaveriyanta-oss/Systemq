@@ -1,92 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SYSTEMQ</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<header>
-  <div class="brand"><b>SYSTEMQ</b><span>SYSTEM TOKO</span></div>
-  <nav>
-    <button onclick="openSection('master')">MASTER</button>
-    <button onclick="openSection('inventory')">INVENTORY</button>
-    <button onclick="openSection('report')">LAPORAN</button>
-    <button onclick="openSection('finance')">FINANCE & AKUNTING</button>
-  </nav>
-</header>
-
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SYSTEMQ</title><link rel="stylesheet" href="style.css"></head><body>
+<header><div><b>SYSTEMQ</b><small>SYSTEM TOKO</small></div><nav><button onclick="show('master')">MASTER GLOBAL</button><button onclick="show('inventory')">INVENTORY</button><button onclick="show('report')">LAPORAN</button><button onclick="show('finance')">FINANCE & AKUNTING</button></nav></header>
 <main>
-<section id="master" class="section">
-  <div class="page-head">
-    <div><h1>MASTER</h1><p>Kelola seluruh data dasar sistem toko.</p></div>
-    <div class="store-pill">🏪 <span id="storeContext">BELUM PILIH STORE</span></div>
-  </div>
-
-  <div class="tabs" id="masterTabs">
-    <button data-type="store" onclick="selectMaster('store')">STORE</button>
-    <button data-type="guide" onclick="selectMaster('guide')">GUIDE</button>
-    <button data-type="brand" onclick="selectMaster('brand')">BRAND</button>
-    <button data-type="spare" onclick="selectMaster('spare')">SPARE</button>
-    <button data-type="color" onclick="selectMaster('color')">WARNA</button>
-    <button data-type="size" onclick="selectMaster('size')">KOLOM SIZE</button>
-    <button data-type="product" onclick="selectMaster('product')">MASTER BARANG</button>
-  </div>
-
-  <div class="toolbar">
-    <button class="primary" onclick="addRecord()">＋ ADD</button>
-    <button onclick="editSelected()">✎ UPDATE</button>
-    <button class="danger" onclick="deleteSelected()">🗑 DELETE</button>
-    <button onclick="exportExcel()">⇩ EXPORT EXCEL</button>
-    <button onclick="closeMaster()">← KELUAR</button>
-  </div>
-
-  <div id="specialProductTools" class="special-tools hidden">
-    <button onclick="showProducts()">📦 BARANG</button>
-    <button class="primary" onclick="addRecord()">＋ REGISTER BARANG</button>
-    <button class="danger" onclick="deleteSelected()">🗑 DELETE</button>
-    <button onclick="bulkDiscount()">% UPDATE DISKON</button>
-    <label class="filebtn">⇧ IMPORT EXCEL<input id="importFile" type="file" accept=".csv,text/csv" onchange="importCSV(event)"></label>
-    <button onclick="updateNewMaster()">↻ UPDATE NEW MASTER</button>
-  </div>
-
-  <div class="tools">
-    <input id="searchInput" placeholder="Cari data..." oninput="renderTable()">
-    <span id="counter"></span>
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead id="tableHead"></thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
-</section>
-
-<section id="inventory" class="section hidden">
-  <h1>INVENTORY</h1>
-  <div class="coming">Tahap berikutnya: stok per Store.<br><small>Master barang sudah disiapkan untuk digunakan bersama semua store.</small></div>
-</section>
-
-<section id="report" class="section hidden">
-  <h1>LAPORAN</h1><div class="coming">Modul laporan akan terhubung setelah Inventory dan Kasir selesai.</div>
-</section>
-
-<section id="finance" class="section hidden">
-  <h1>FINANCE & AKUNTING</h1>
-  <div class="coming">Akses modul ini nanti dilindungi kode rahasia sesuai rencana SYSTEMQ.</div>
-</section>
+<section id="master"><h1>MASTER GLOBAL</h1><p>Kelola seluruh data master yang digunakan bersama oleh semua store.</p>
+<div class="filter"><b>FILTER MASTER</b><select id="type" onchange="setType(this.value)"><option value="store">STORE</option><option value="guide">GUIDE</option><option value="brand">BRAND</option><option value="spare">SPARE</option><option value="color">WARNA</option><option value="size">KOLOM SIZE</option><option value="product">MASTER BARANG</option></select></div>
+<div class="toolbar"><button class="orange" onclick="add()">＋ ADD</button><button onclick="edit()">✎ UPDATE</button><button class="red" onclick="del()">🗑 DELETE</button><button onclick="exportData()">⇩ EXPORT EXCEL</button><button onclick="alert('Keluar dari '+title())">← KELUAR</button></div>
+<div id="productTools" class="toolbar special hidden"><button>📦 BARANG</button><button class="orange" onclick="add()">＋ REGISTER BARANG</button><button class="red" onclick="del()">🗑 DELETE</button><button onclick="discount()">% UPDATE DISKON</button><label>⇧ IMPORT EXCEL<input type="file" accept=".csv" onchange="importCSV(event)"></label><button onclick="alert('Master diperbarui')">↻ UPDATE NEW MASTER</button></div>
+<input id="search" placeholder="Cari data..." oninput="render()"><b id="count"></b><h3 id="tableTitle"></h3>
+<div class="table"><table><thead id="head"></thead><tbody id="body"></tbody></table></div></section>
+<section id="inventory" class="hidden"><h1>INVENTORY</h1><div class="box">Tahap berikutnya: stok per Store.</div></section>
+<section id="report" class="hidden"><h1>LAPORAN</h1><div class="box">Modul laporan akan dibangun setelah Inventory.</div></section>
+<section id="finance" class="hidden"><h1>FINANCE & AKUNTING</h1><div class="box">Akses nanti menggunakan kode rahasia.</div></section>
 </main>
-
-<div id="modalBg" class="modal-bg hidden">
-  <div class="modal">
-    <div class="modal-head"><h2 id="modalTitle">Tambah Data</h2><button class="x" onclick="closeModal()">×</button></div>
-    <form id="recordForm" onsubmit="saveRecord(event)"></form>
-    <div class="modal-actions"><button type="button" onclick="closeModal()">BATAL</button><button class="primary" type="submit" form="recordForm">SIMPAN</button></div>
-  </div>
-</div>
-
-<script src="app.js"></script>
-</body>
-</html>
+<div id="modal" class="modal hidden"><div class="card"><button class="close" onclick="closeModal()">×</button><h2 id="modalTitle"></h2><form id="form" onsubmit="save(event)"></form></div></div>
+<script src="app.js"></script></body></html>

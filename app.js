@@ -1,112 +1,24 @@
-const KEY='systemq_master_v14';
-const schemas={
- store:{title:'STORE',fields:[['code','KODE STORE','text',true],['name','NAMA STORE','text',true],['status','STATUS','select',false,['ACTIVE','INACTIVE']]]},
- guide:{title:'GUIDE',fields:[['code','KODE GUIDE','text',true],['name','NAMA GUIDE','text',true],['address','ALAMAT','text'],['phone','NO HP','text'],['commission','KOMISI %','number'],['status','STATUS','select',false,['ACTIVE','INACTIVE']]]},
- brand:{title:'BRAND',fields:[['code','KODE BRAND','text',true],['name','NAMA BRAND','text',true],['supplier','KODE / NAMA SUPPLIER','text'],['newArrival','NEW ARRIVAL','select',false,['YA','TIDAK']],['discount','DISKON %','number'],['margin','MARGIN','number'],['status','STATUS','select',false,['ACTIVE','INACTIVE']]]},
- spare:{title:'SPARE',fields:[['code','KODE SPARE','text',true],['name','JENIS SPARE','text',true],['status','STATUS','select',false,['ACTIVE','INACTIVE']]]},
- color:{title:'WARNA',fields:[['code','KODE WARNA','text',true],['name','NAMA WARNA','text',true],['status','STATUS','select',false,['ACTIVE','INACTIVE']]]},
- size:{title:'KOLOM SIZE',fields:[['code','KODE SIZE','text',true],['type','JENIS SIZE','text',true],['sizes','DAFTAR SIZE (pisahkan dengan koma)','text',true],['status','STATUS','select',false,['ACTIVE','INACTIVE']]]},
- product:{title:'MASTER BARANG',fields:[['brand','BRAND','text',true],['sku','SKU','text',true],['name','NAMA BARANG','text',true],['barcode','BARCODE','text'],['spare','SPARE','text'],['color','WARNA','text'],['price','HARGA JUAL','number'],['discount','DISKON %','number'],['size','SIZE','text'],['status','STATUS','select',false,['ACTIVE','INACTIVE']]]}
-};
-
-let db=JSON.parse(localStorage.getItem(KEY)||'{}');
-Object.keys(schemas).forEach(k=>db[k]??=[]);
-let current='store', selected=null, editing=null;
-
-function persist(){localStorage.setItem(KEY,JSON.stringify(db))}
-function openSection(id){document.querySelectorAll('.section').forEach(x=>x.classList.add('hidden'));document.getElementById(id).classList.remove('hidden')}
-function selectMaster(type){
- current=type;selected=null;editing=null;
- document.querySelectorAll('#masterTabs button').forEach(b=>b.classList.toggle('active',b.dataset.type===type));
- document.getElementById('specialProductTools').classList.toggle('hidden',type!=='product');
- document.getElementById('searchInput').value='';
- renderTable();
-}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-function display(v,key){
- if(v===undefined||v===null||v==='')return '-';
- if(key==='price')return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);
- if(key==='discount'||key==='commission')return `${v}%`;
- return esc(v);
-}
-function renderTable(){
- const s=schemas[current], q=document.getElementById('searchInput').value.toLowerCase();
- document.getElementById('tableHead').innerHTML='<tr>'+s.fields.map(f=>`<th>${f[1]}</th>`).join('')+'</tr>';
- const data=db[current].filter(r=>Object.values(r).join(' ').toLowerCase().includes(q));
- document.getElementById('counter').textContent=`${data.length} DATA`;
- const body=document.getElementById('tableBody');
- body.innerHTML=data.length?data.map(r=>{
-   const idx=db[current].indexOf(r);
-   return `<tr class="${selected===idx?'selected':''}" onclick="selectRow(${idx})">`+
-   s.fields.map(f=>`<td class="${f[0]==='status'?(r[f[0]]==='ACTIVE'?'status-active':'status-inactive'):''}">${display(r[f[0]],f[0])}</td>`).join('')+'</tr>';
- }).join(''):`<tr><td class="empty" colspan="${s.fields.length}">Belum ada data. Tekan ADD untuk menambahkan.</td></tr>`;
- updateStoreContext();
-}
-function selectRow(i){selected=i;renderTable()}
-function addRecord(){editing=null;openModal()}
-function editSelected(){if(selected===null)return alert('Pilih satu baris data terlebih dahulu.');editing=selected;openModal()}
-function openModal(){
- const s=schemas[current], r=editing===null?{}:db[current][editing];
- document.getElementById('modalTitle').textContent=(editing===null?'Tambah ':'Update ')+s.title;
- document.getElementById('recordForm').innerHTML='<div class="form-grid">'+s.fields.map(f=>{
-   const [key,label,type,required,opts]=f;
-   if(type==='select')return `<div class="field"><label>${label}</label><select name="${key}">${(opts||[]).map(o=>`<option ${r[key]===o?'selected':''}>${o}</option>`).join('')}</select></div>`;
-   return `<div class="field ${key==='name'?'full':''}"><label>${label}${required?' *':''}</label><input name="${key}" type="${type||'text'}" value="${esc(r[key]||'')}" ${required?'required':''}></div>`;
- }).join('')+'</div>';
- document.getElementById('modalBg').classList.remove('hidden');
-}
-function closeModal(){document.getElementById('modalBg').classList.add('hidden')}
-function saveRecord(e){
- e.preventDefault();const fd=new FormData(e.target),r={};
- schemas[current].fields.forEach(f=>r[f[0]]=String(fd.get(f[0])??'').trim());
- const key=current==='product'?'sku':'code';
- if(db[current].some((x,i)=>x[key].toLowerCase()===r[key].toLowerCase()&&i!==editing))return alert(`${key.toUpperCase()} sudah digunakan.`);
- if(editing===null)db[current].push(r);else db[current][editing]=r;
- selected=null;persist();closeModal();renderTable();
-}
-function deleteSelected(){
- if(selected===null)return alert('Pilih data yang ingin dihapus.');
- if(confirm('Hapus data yang dipilih?')){db[current].splice(selected,1);selected=null;persist();renderTable()}
-}
-function closeMaster(){openSection('master');selected=null;alert('KELUAR dari pilihan '+schemas[current].title);}
-function exportExcel(){
- const s=schemas[current], rows=[s.fields.map(f=>f[1]),...db[current].map(r=>s.fields.map(f=>r[f[0]]??''))];
- const csv=rows.map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
- const blob=new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8;'}),a=document.createElement('a');
- a.href=URL.createObjectURL(blob);a.download=`SYSTEMQ_${current.toUpperCase()}.csv`;a.click();URL.revokeObjectURL(a.href);
-}
-function bulkDiscount(){
- if(!db.product.length)return alert('Belum ada barang.');
- const v=prompt('Masukkan diskon baru (%) untuk semua barang yang dipilih melalui filter/semua data.\nUntuk versi sederhana sekarang: berlaku untuk semua MASTER BARANG.', '');
- if(v===null)return;const n=Number(v);if(Number.isNaN(n)||n<0||n>100)return alert('Diskon harus 0 sampai 100.');
- db.product.forEach(p=>p.discount=n);persist();renderTable();alert('Diskon berhasil diperbarui.');
-}
-function importCSV(ev){
- const f=ev.target.files[0];if(!f)return;
- const reader=new FileReader();
- reader.onload=()=>{try{
-   const lines=String(reader.result).replace(/^\uFEFF/,'').trim().split(/\r?\n/).filter(Boolean);
-   if(lines.length<2)return alert('File CSV kosong.');
-   const headers=lines.shift().split(',').map(x=>x.trim().replace(/^"|"$/g,'').toLowerCase());
-   let count=0;
-   lines.forEach(line=>{
-     const vals=line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)||line.split(',');
-     const r={};schemas[current].fields.forEach(f=>{let i=headers.indexOf(f[0]);if(i<0)i=headers.indexOf(f[1].toLowerCase());r[f[0]]=String(vals[i]??'').replace(/^"|"$/g,'').trim()});
-     if(Object.values(r).some(Boolean)){db[current].push(r);count++}
-   });
-   persist();renderTable();alert(`${count} data berhasil diimport.`);
- }catch(err){alert('Format CSV tidak bisa dibaca.')}}
- reader.readAsText(f);ev.target.value='';
-}
-function updateNewMaster(){
- if(current!=='product')return;
- const missing=[];
- db.brand.forEach(b=>{if(b.name&&!db.product.some(p=>p.brand.toLowerCase()===b.name.toLowerCase()))missing.push(b.name)});
- alert(missing.length?'Master terbaru terdeteksi. Brand yang belum dipakai produk: '+missing.join(', '):'Master sudah tersinkron dengan data saat ini.');
-}
-function showProducts(){selectMaster('product')}
-function updateStoreContext(){
- const active=db.store.find(s=>s.status==='ACTIVE');
- document.getElementById('storeContext').textContent=active?`${active.code} - ${active.name}`:'BELUM ADA STORE ACTIVE';
-}
-selectMaster('store');
+const K='systemq_v15',S={
+store:['STORE',[['code','KODE STORE'],['name','NAMA STORE'],['status','STATUS']]],
+guide:['GUIDE',[['code','KODE GUIDE'],['name','NAMA GUIDE'],['address','ALAMAT'],['phone','NO HP'],['commission','KOMISI %'],['status','STATUS']]],
+brand:['BRAND',[['code','KODE BRAND'],['name','NAMA BRAND'],['supplier','SUPPLIER'],['newArrival','NEW ARRIVAL'],['discount','DISKON %'],['margin','MARGIN'],['status','STATUS']]],
+spare:['SPARE',[['code','KODE SPARE'],['name','JENIS SPARE'],['status','STATUS']]],
+color:['WARNA',[['code','KODE WARNA'],['name','NAMA WARNA'],['status','STATUS']]],
+size:['KOLOM SIZE',[['code','KODE SIZE'],['type','JENIS SIZE'],['sizes','DAFTAR SIZE'],['status','STATUS']]],
+product:['MASTER BARANG',[['brand','BRAND'],['sku','SKU'],['name','NAMA BARANG'],['barcode','BARCODE'],['spare','SPARE'],['color','WARNA'],['price','HARGA JUAL'],['discount','DISKON %'],['size','SIZE'],['status','STATUS']]]
+};let db=JSON.parse(localStorage.getItem(K)||'{}'),type='store',sel=null,editIdx=null;Object.keys(S).forEach(x=>db[x]??=[]);
+const saveDB=()=>localStorage.setItem(K,JSON.stringify(db));const title=()=>S[type][0];const fields=()=>S[type][1];
+function show(id){document.querySelectorAll('main section').forEach(x=>x.classList.add('hidden'));document.getElementById(id).classList.remove('hidden')}
+function setType(x){type=x;sel=null;editIdx=null;document.getElementById('productTools').classList.toggle('hidden',x!=='product');document.getElementById('tableTitle').textContent=title();render()}
+function render(){let q=document.getElementById('search').value.toLowerCase(),rows=db[type].filter(r=>Object.values(r).join(' ').toLowerCase().includes(q));head.innerHTML='<tr>'+fields().map(f=>'<th>'+f[1]+'</th>').join('')+'</tr>';body.innerHTML=rows.length?rows.map(r=>{let i=db[type].indexOf(r);return '<tr class="'+(i===sel?'selected':'')+'" onclick="pick('+i+')">'+fields().map(f=>'<td>'+((r[f[0]]??'')||'-')+'</td>').join('')+'</tr>'}).join(''):'<tr><td colspan="'+fields().length+'" style="text-align:center;padding:35px;color:#77838e">Belum ada data. Tekan ADD untuk menambahkan.</td></tr>';count.textContent=rows.length+' DATA'}
+function pick(i){sel=i;render()}
+function add(){editIdx=null;openForm()}
+function edit(){if(sel===null)return alert('Pilih satu data terlebih dahulu');editIdx=sel;openForm()}
+function openForm(){let r=editIdx===null?{}:db[type][editIdx];modalTitle.textContent=(editIdx===null?'Tambah ':'Update ')+title();form.innerHTML=fields().map(f=>{let v=r[f[0]]||'';let opts=f[0]==='status'?'<option '+(v==='ACTIVE'?'selected':'')+'>ACTIVE</option><option '+(v==='INACTIVE'?'selected':'')+'>INACTIVE</option>':'';return '<div class="field"><label>'+f[1]+'</label>'+(opts?'<select name="'+f[0]+'">'+opts+'</select>':'<input name="'+f[0]+'" value="'+String(v).replaceAll('"','&quot;')+'">')+'</div>'}).join('')+'<button class="orange" type="submit">SIMPAN</button>';modal.classList.remove('hidden')}
+function closeModal(){modal.classList.add('hidden')}
+function save(e){e.preventDefault();let fd=new FormData(form),r={};fields().forEach(f=>r[f[0]]=String(fd.get(f[0])||'').trim());let key=type==='product'?'sku':'code';if(r[key]&&db[type].some((x,i)=>x[key]===r[key]&&i!==editIdx))return alert(key.toUpperCase()+' sudah digunakan');if(editIdx===null)db[type].push(r);else db[type][editIdx]=r;sel=null;saveDB();closeModal();render()}
+function del(){if(sel===null)return alert('Pilih data terlebih dahulu');if(confirm('Hapus data ini?')){db[type].splice(sel,1);sel=null;saveDB();render()}}
+function exportData(){let rows=[fields().map(f=>f[1]),...db[type].map(r=>fields().map(f=>r[f[0]]||''))],csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv'}));a.download='SYSTEMQ_'+type.toUpperCase()+'.csv';a.click()}
+function discount(){let v=prompt('Diskon baru (%) untuk semua Master Barang');if(v===null||isNaN(v))return;db.product.forEach(x=>x.discount=v);saveDB();render()}
+function importCSV(e){let f=e.target.files[0];if(!f)return;let rd=new FileReader();rd.onload=()=>{let ls=String(rd.result).trim().split(/\r?\n/),h=ls.shift().split(',').map(x=>x.trim().toLowerCase()),n=0;ls.forEach(l=>{let v=l.split(','),r={};fields().forEach(f=>{let i=h.indexOf(f[0]);r[f[0]]=i>=0?(v[i]||'').trim():''});db[type].push(r);n++});saveDB();render();alert(n+' data berhasil diimport')};rd.readAsText(f)}
+setType('store');
