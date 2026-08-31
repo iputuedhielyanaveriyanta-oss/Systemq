@@ -14,10 +14,10 @@ main{max-width:1200px;margin:0 auto;padding:24px}
 .pageHead{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}
 .pageHead h1{margin:0 0 5px;font-size:24px}.pageHead p{margin:0;color:#6d7780}
 .panel{background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:18px}
-.filters{display:grid;grid-template-columns:minmax(260px,2fr) minmax(170px,1fr) minmax(150px,1fr);gap:12px;align-items:end;margin-bottom:14px}
+.filters{display:grid;grid-template-columns:minmax(160px,.8fr) minmax(240px,1.8fr) minmax(150px,.8fr) minmax(140px,.7fr);gap:12px;align-items:end;margin-bottom:14px}
 .field label{display:block;font-size:11px;font-weight:800;margin-bottom:7px}
 input,select{width:100%;font:inherit;border:1px solid #cfd6db;border-radius:9px;padding:12px;background:#fff}
-.summary{display:flex;gap:12px;margin:0 0 14px}.summary>div{min-width:160px;border:1px solid #e2e7eb;border-radius:10px;padding:12px}
+.exportBar{display:flex;justify-content:flex-end;margin:0 0 12px}.exportBar button{background:#1d2730;color:#fff;border-color:#1d2730}.summary{display:flex;gap:12px;margin:0 0 14px}.summary>div{min-width:160px;border:1px solid #e2e7eb;border-radius:10px;padding:12px}
 .summary b{display:block;font-size:22px}.summary span{font-size:11px;color:#6d7780;font-weight:800}
 .tableWrap{overflow:auto;border:1px solid #e4e8eb;border-radius:10px}
 table{width:100%;min-width:930px;border-collapse:collapse}
@@ -28,6 +28,7 @@ th{font-size:11px;background:#f7f8f9;white-space:nowrap}
 .notice{margin-bottom:14px;padding:12px;border-radius:9px;background:#fff6e9;border:1px solid #f2dfbe;font-size:13px}
 @media(max-width:700px){.topbar,.pageHead{flex-direction:column;align-items:flex-start}main{padding:14px}.filters{grid-template-columns:1fr}.summary{flex-direction:column}.summary>div{width:100%}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -48,6 +49,10 @@ th{font-size:11px;background:#f7f8f9;white-space:nowrap}
 
     <div class="filters">
       <div class="field">
+        <label>TANGGAL SALDO STOK</label>
+        <input id="stockDate" type="date">
+      </div>
+      <div class="field">
         <label>CARI BARANG</label>
         <input id="search" type="search" placeholder="Cari SKU, barcode, atau nama barang...">
       </div>
@@ -60,6 +65,8 @@ th{font-size:11px;background:#f7f8f9;white-space:nowrap}
         <select id="discountFilter"><option value="">SEMUA DISKON</option></select>
       </div>
     </div>
+
+    <div class="exportBar"><button id="exportExcel" type="button">⇩ EXPORT EXCEL</button></div>
 
     <div class="summary">
       <div><b id="skuTotal">0</b><span>SKU</span></div>
@@ -92,8 +99,9 @@ th{font-size:11px;background:#f7f8f9;white-space:nowrap}
 var MASTER_KEY='systemq_v17_data';
 var GR_KEY='systemq_inventory_goods_receiving_v1';
 var STOCK_KEY='systemq_inventory_stock_v1';
+var MOVEMENT_KEY='systemq_inventory_stock_movement_v1';
 
-var master={},docs=[],stockRows=[];
+var master={},docs=[],stockRows=[],movements=[];
 
 function el(id){return document.getElementById(id);}
 function text(v){return String(v===undefined||v===null?'':v);}
@@ -160,11 +168,24 @@ function activeStore(){
   return {code:'',name:''};
 }
 
-function storeRows(){
-  var s=activeStore();
+function selectedDate(){return text(el('stockDate')&&el('stockDate').value).trim();}
+function asOfRows(){
+  var s=activeStore(), date=selectedDate(), map={};
   if(!s.code)return [];
-  return stockRows.filter(function(r){return text(r.storeCode)===s.code;});
+  if(!date){
+    return stockRows.filter(function(r){return text(r.storeCode)===s.code;});
+  }
+  movements.forEach(function(m){
+    if(text(m.storeCode)!==s.code)return;
+    if(text(m.date)>date)return;
+    var key=text(m.sku).trim()||text(m.barcode).trim();
+    if(!key)return;
+    if(!map[key])map[key]={storeCode:s.code,storeName:s.name,sku:text(m.sku).trim(),barcode:text(m.barcode).trim(),qtyOnHand:0};
+    map[key].qtyOnHand+=(Number(m.qtyIn)||0)-(Number(m.qtyOut)||0);
+  });
+  return Object.keys(map).map(function(k){return map[k];});
 }
+function storeRows(){return asOfRows();}
 
 function renderFilters(){
   var rows=storeRows(),brands=[],discounts=[];
@@ -186,9 +207,10 @@ function renderFilters(){
 function render(){
   load();
   var store=activeStore();
-  el('storeLabel').textContent=store.code?'STORE: '+(store.name||store.code):'Belum ada store aktif.';
+  var asOf=selectedDate();
+  el('storeLabel').textContent=store.code?('STORE: '+(store.name||store.code)+(asOf?' • SALDO PER '+asOf:'')):'Belum ada store aktif.';
   el('storeNotice').textContent=store.code
-    ?'Saldo stok ditampilkan untuk Store aktif: '+(store.name||store.code)+'. Store tidak dapat dipilih dari halaman ini.'
+    ?'Saldo stok ditampilkan untuk Store aktif: '+(store.name||store.code)+(asOf?' sampai tanggal '+asOf:' per hari ini')+'. Store tidak dapat dipilih dari halaman ini.'
     :'Belum ada data posting Goods Receiving. Posting transaksi terlebih dahulu agar saldo stok dapat ditampilkan.';
   renderFilters();
 
@@ -218,12 +240,34 @@ function render(){
   el('qtyTotal').textContent=qty;
 }
 
+function exportExcel(){
+  var store=activeStore(), asOf=selectedDate(), q=norm(el('search').value),brand=text(el('brandFilter').value),discount=text(el('discountFilter').value);
+  var rows=storeRows().filter(function(r){
+    var m=meta(r),hay=norm(r.barcode)+' '+norm(r.sku)+' '+norm(m.name);
+    return (!q||hay.indexOf(q)!==-1)&&(!brand||m.brand===brand)&&(!discount||m.discount===discount);
+  }).sort(function(a,b){return norm(a.sku).localeCompare(norm(b.sku));});
+  var data=rows.map(function(r,i){var m=meta(r);return {
+    'NO.':i+1,'BARCODE':r.barcode||'','SKU':r.sku||'','NAMA BARANG':m.name||'',
+    'BRAND':m.brand||'','SPARE':m.spare||'','DISKON':discountLabel(m.discount),'SALDO STOK':Number(r.qtyOnHand)||0
+  };});
+  if(typeof XLSX==='undefined'){alert('Library Excel belum termuat. Coba refresh lalu ulangi Export.');return;}
+  var ws=XLSX.utils.json_to_sheet(data.length?data:[{'NO.':'','BARCODE':'','SKU':'','NAMA BARANG':'','BRAND':'','SPARE':'','DISKON':'','SALDO STOK':''}]);
+  ws['!cols']=[{wch:7},{wch:18},{wch:18},{wch:34},{wch:18},{wch:18},{wch:12},{wch:14}];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Saldo Stok');
+  var suffix=asOf||new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,'Saldo-Stok-'+(store.code||'Store')+'-'+suffix+'.xlsx');
+}
+
 function init(){
   load();
+  el('stockDate').value=new Date().toISOString().slice(0,10);
   render();
   el('search').addEventListener('input',render);
   el('brandFilter').addEventListener('change',render);
   el('discountFilter').addEventListener('change',render);
+  el('stockDate').addEventListener('change',render);
+  el('exportExcel').addEventListener('click',exportExcel);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
