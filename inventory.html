@@ -1,97 +1,89 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SYSTEMQ • Inventory</title>
-  <link rel="stylesheet" href="inventory.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SYSTEMQ • Inventory</title>
+<link rel="stylesheet" href="./inventory.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><b>SYSTEMQ</b><small>INVENTORY • GOODS RECEIVING</small></div>
-  <nav>
-    <a href="index.html">← MASTER GLOBAL</a>
-    <button class="orange" type="button" onclick="newGR()">＋ NEW GOODS RECEIVING</button>
-  </nav>
+  <div class="topActions">
+    <a href="./index.html">← MASTER GLOBAL</a>
+    <button id="newGRTop" class="orange" type="button">＋ NEW GOODS RECEIVING</button>
+  </div>
 </header>
 
 <main>
-  <section id="listView">
-    <div class="pageHead">
-      <div>
-        <h1>GOODS RECEIVING</h1>
-        <p>Catat penerimaan barang dari supplier. Stok belum berubah pada tahap draft.</p>
-      </div>
-      <button class="orange" type="button" onclick="newGR()">＋ NEW GOODS RECEIVING</button>
+<section id="listView">
+  <div class="pageHead">
+    <div>
+      <h1>GOODS RECEIVING</h1>
+      <p>Catat penerimaan barang dari supplier. Stok belum berubah pada tahap Draft.</p>
+    </div>
+    <button id="newGRMain" class="orange" type="button">＋ NEW GOODS RECEIVING</button>
+  </div>
+
+  <div class="panel">
+    <input id="search" class="search" type="search" placeholder="Cari Nomor PL atau Supplier...">
+    <div class="tableWrap">
+      <table>
+        <thead><tr>
+          <th>TANGGAL</th><th>SUPPLIER</th><th>NO. PACKING LIST</th>
+          <th>KETERANGAN</th><th>STATUS</th><th>AKSI</th>
+        </tr></thead>
+        <tbody id="listBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="formView" class="hidden">
+  <div class="pageHead">
+    <div>
+      <h1 id="formTitle">NEW GOODS RECEIVING</h1>
+      <p>Langkah 1: isi header transaksi terlebih dahulu.</p>
+    </div>
+    <button id="backTop" type="button">← KEMBALI</button>
+  </div>
+
+  <div class="panel formPanel">
+    <div class="stepTitle">
+      <span>1</span>
+      <div><h2>HEADER GOODS RECEIVING</h2><p>Data mengikuti Packing List dari supplier.</p></div>
     </div>
 
-    <div class="panel">
-      <input id="search" class="search" placeholder="Cari Nomor PL atau Supplier..." oninput="renderList()">
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>TANGGAL</th>
-              <th>SUPPLIER</th>
-              <th>NO. PACKING LIST</th>
-              <th>KETERANGAN</th>
-              <th>STATUS</th>
-              <th>AKSI</th>
-            </tr>
-          </thead>
-          <tbody id="listBody"></tbody>
-        </table>
+    <div class="grid">
+      <div class="field">
+        <label>TANGGAL <em>*</em></label>
+        <input id="grDate" type="date">
+      </div>
+      <div class="field">
+        <label>SUPPLIER <em>*</em></label>
+        <select id="grSupplier"></select>
+      </div>
+      <div class="field full">
+        <label>NOMOR PACKING LIST <em>*</em></label>
+        <input id="grPL" type="text" autocomplete="off" placeholder="Ketik manual nomor PL dari supplier">
+        <small>Nomor PL diketik sesuai dokumen supplier.</small>
+      </div>
+      <div class="field full">
+        <label>KETERANGAN <span>(opsional)</span></label>
+        <textarea id="grNote" rows="3" placeholder="Contoh: Barang datang gudang utama"></textarea>
       </div>
     </div>
-  </section>
 
-  <section id="formView" class="hidden">
-    <div class="pageHead">
-      <div>
-        <h1 id="formTitle">NEW GOODS RECEIVING</h1>
-        <p>Langkah 1 dari proses penerimaan barang: isi header transaksi terlebih dahulu.</p>
-      </div>
-      <button type="button" onclick="backToList()">← KEMBALI</button>
+    <div id="supplierWarning" class="notice hidden"></div>
+
+    <div class="actions">
+      <button id="cancelBtn" type="button">BATAL</button>
+      <button id="saveBtn" class="orange" type="button">SIMPAN DRAFT</button>
     </div>
-
-    <div class="panel formPanel">
-      <div class="stepTitle"><span>1</span><div><h2>HEADER GOODS RECEIVING</h2><p>Data ini mengikuti Packing List fisik dari supplier.</p></div></div>
-
-      <div class="grid">
-        <div class="field">
-          <label for="grDate">TANGGAL <em>*</em></label>
-          <input id="grDate" type="date">
-        </div>
-
-        <div class="field">
-          <label for="grSupplier">SUPPLIER <em>*</em></label>
-          <select id="grSupplier"></select>
-        </div>
-
-        <div class="field full">
-          <label for="grPL">NOMOR PACKING LIST <em>*</em></label>
-          <input id="grPL" autocomplete="off" placeholder="Ketik manual nomor PL dari supplier">
-          <small>Nomor PL diketik sesuai dokumen Packing List yang dikirim supplier.</small>
-        </div>
-
-        <div class="field full">
-          <label for="grNote">KETERANGAN <span>(opsional)</span></label>
-          <textarea id="grNote" rows="3" placeholder="Contoh: Barang datang gudang utama / catatan penerimaan"></textarea>
-        </div>
-      </div>
-
-      <div class="notice">
-        <b>Catatan:</b> Setelah header tersimpan, transaksi akan berstatus <b>DRAFT</b>. Pada langkah berikutnya baru ditambahkan Import Packing List dan proses Scan.
-      </div>
-
-      <div class="actions">
-        <button type="button" onclick="backToList()">BATAL</button>
-        <button class="orange" type="button" onclick="saveGR()">SIMPAN DRAFT</button>
-      </div>
-    </div>
-  </section>
+  </div>
+</section>
 </main>
 
-<script src="inventory.js"></script>
+<script src="./inventory.js"></script>
 </body>
 </html>

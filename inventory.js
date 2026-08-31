@@ -1,155 +1,109 @@
-/* SYSTEMQ Inventory - Step 1: New Goods Receiving Header
-   Tidak mengubah index.html / app.js / Master Global. */
-const MASTER_KEY = 'systemq_v17_data';
-const GR_KEY = 'systemq_inventory_goods_receiving_v1';
+(function(){
+'use strict';
+var MASTER_KEY='systemq_v17_data';
+var GR_KEY='systemq_inventory_goods_receiving_v1';
+var master={};
+var docs=[];
+var current=null;
 
-let master = {};
-let docs = [];
-let current = null;
-
-const $ = id => document.getElementById(id);
-
-function loadData(){
-  try { master = JSON.parse(localStorage.getItem(MASTER_KEY) || '{}'); }
-  catch(e){ master = {}; }
-  if(!Array.isArray(master.supplier)) master.supplier = [];
-
-  try { docs = JSON.parse(localStorage.getItem(GR_KEY) || '[]'); }
-  catch(e){ docs = []; }
-  if(!Array.isArray(docs)) docs = [];
+function el(id){return document.getElementById(id);}
+function text(v){return String(v===undefined||v===null?'':v);}
+function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function load(){
+  try{master=JSON.parse(localStorage.getItem(MASTER_KEY)||'{}');}catch(e){master={};}
+  if(!master||typeof master!=='object')master={};
+  if(!Array.isArray(master.supplier))master.supplier=[];
+  try{docs=JSON.parse(localStorage.getItem(GR_KEY)||'[]');}catch(e){docs=[];}
+  if(!Array.isArray(docs))docs=[];
 }
-
-function saveDocs(){
-  localStorage.setItem(GR_KEY, JSON.stringify(docs));
-}
-
-function esc(value){
-  return String(value ?? '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-}
-
-function activeSuppliers(){
-  return master.supplier.filter(s => !s.status || String(s.status).toUpperCase() === 'ACTIVE');
-}
-
+function save(){localStorage.setItem(GR_KEY,JSON.stringify(docs));}
+function supplierKey(s){return text(s&& (s.code||s.name)).trim();}
 function supplierLabel(s){
-  const code = String(s.code || '').trim();
-  const name = String(s.name || '').trim();
-  return code && name ? `${code} - ${name}` : (name || code);
+  var code=text(s&&s.code).trim(), name=text(s&&s.name).trim();
+  return code&&name?code+' - '+name:(name||code);
 }
-
-function supplierKey(s){
-  return String(s.code || s.name || '').trim();
+function suppliers(){
+  return master.supplier.filter(function(s){
+    return !s.status || text(s.status).toUpperCase()==='ACTIVE';
+  });
 }
-
-function renderSupplier(selected=''){
-  const suppliers = activeSuppliers();
-  $('grSupplier').innerHTML = '<option value="">-- PILIH SUPPLIER --</option>' +
-    suppliers.map(s => '<option value="' + esc(supplierKey(s)) + '">' +
-      esc(supplierLabel(s)) + '</option>').join('');
-  $('grSupplier').value = selected || '';
+function renderSupplier(selected){
+  var select=el('grSupplier');
+  if(!select)return;
+  var html='<option value="">-- PILIH SUPPLIER --</option>';
+  suppliers().forEach(function(s){
+    html+='<option value="'+esc(supplierKey(s))+'">'+esc(supplierLabel(s))+'</option>';
+  });
+  select.innerHTML=html;
+  select.value=selected||'';
+  var warning=el('supplierWarning');
+  if(suppliers().length===0){
+    warning.textContent='Supplier belum ditemukan di Master Global. Tambahkan Supplier terlebih dahulu di Master Global.';
+    warning.classList.remove('hidden');
+  }else warning.classList.add('hidden');
 }
-
+function showForm(){
+  el('listView').classList.add('hidden');
+  el('formView').classList.remove('hidden');
+  renderSupplier(current?current.supplier:'');
+  el('grDate').value=current&&current.date?current.date:new Date().toISOString().slice(0,10);
+  el('grPL').value=current&&current.plNo?current.plNo:'';
+  el('grNote').value=current&&current.note?current.note:'';
+}
 function newGR(){
-  loadData();
-  current = {
-    id: 'GR-' + Date.now(),
-    date: new Date().toISOString().slice(0,10),
-    supplier: '',
-    supplierName: '',
-    plNo: '',
-    note: '',
-    items: [],
-    status: 'DRAFT',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  openForm();
+  current={id:'GR-'+Date.now(),date:new Date().toISOString().slice(0,10),supplier:'',supplierName:'',plNo:'',note:'',items:[],status:'DRAFT',createdAt:new Date().toISOString()};
+  showForm();
 }
-
-function openGR(id){
-  loadData();
-  current = docs.find(d => d.id === id);
-  if(!current) return alert('Data Goods Receiving tidak ditemukan.');
-  if(!Array.isArray(current.items)) current.items = [];
-  openForm();
+function back(){
+  current=null;
+  el('formView').classList.add('hidden');
+  el('listView').classList.remove('hidden');
+  load();renderList();
 }
-
-function openForm(){
-  $('listView').classList.add('hidden');
-  $('formView').classList.remove('hidden');
-  $('formTitle').textContent = current && current.id ? 'NEW / EDIT GOODS RECEIVING' : 'NEW GOODS RECEIVING';
-  renderSupplier(current?.supplier || '');
-  $('grDate').value = current?.date || new Date().toISOString().slice(0,10);
-  $('grPL').value = current?.plNo || '';
-  $('grNote').value = current?.note || '';
+function openDoc(id){
+  load();
+  for(var i=0;i<docs.length;i++){if(docs[i].id===id){current=docs[i];break;}}
+  if(!current){alert('Data Goods Receiving tidak ditemukan.');return;}
+  showForm();
 }
-
-function backToList(){
-  current = null;
-  $('formView').classList.add('hidden');
-  $('listView').classList.remove('hidden');
-  loadData();
-  renderList();
-}
-
-function collectHeader(){
-  if(!current) return null;
-  const date = $('grDate').value;
-  const supplier = $('grSupplier').value;
-  const plNo = $('grPL').value.trim();
-  const note = $('grNote').value.trim();
-
-  if(!date || !supplier || !plNo){
-    alert('Tanggal, Supplier, dan Nomor Packing List wajib diisi.');
-    return null;
-  }
-
-  const supplierRecord = activeSuppliers().find(s => supplierKey(s) === supplier);
-  current.date = date;
-  current.supplier = supplier;
-  current.supplierName = supplierRecord ? supplierLabel(supplierRecord) : supplier;
-  current.plNo = plNo;
-  current.note = note;
-  current.status = current.status === 'POSTED' ? 'POSTED' : 'DRAFT';
-  current.updatedAt = new Date().toISOString();
-  return current;
-}
-
-function saveGR(){
-  const data = collectHeader();
-  if(!data) return;
-
-  loadData();
-  const index = docs.findIndex(d => d.id === data.id);
-  if(index === -1) docs.unshift(data);
-  else docs[index] = data;
-  saveDocs();
-
-  alert('HEADER GOODS RECEIVING BERHASIL DISIMPAN SEBAGAI DRAFT.');
-  backToList();
-}
-
 function renderList(){
-  const q = String($('search')?.value || '').trim().toLowerCase();
-  const rows = docs.filter(d =>
-    `${d.plNo || ''} ${d.supplierName || ''} ${d.date || ''}`.toLowerCase().includes(q)
-  );
-
-  $('listBody').innerHTML = rows.length ? rows.map(d => `
-    <tr>
-      <td>${esc(d.date || '-')}</td>
-      <td>${esc(d.supplierName || '-')}</td>
-      <td><b>${esc(d.plNo || '-')}</b></td>
-      <td>${esc(d.note || '-')}</td>
-      <td><span class="status ${String(d.status||'DRAFT').toLowerCase()}">${esc(d.status || 'DRAFT')}</span></td>
-      <td><button type="button" class="smallBtn" onclick="openGR('${esc(d.id)}')">EDIT</button></td>
-    </tr>
-  `).join('') : '<tr><td colspan="6" class="empty">Belum ada Goods Receiving. Tekan NEW GOODS RECEIVING untuk membuat transaksi baru.</td></tr>';
+  var body=el('listBody'), q=text(el('search').value).toLowerCase().trim();
+  var rows=docs.filter(function(d){return (text(d.plNo)+' '+text(d.supplierName)+' '+text(d.date)).toLowerCase().indexOf(q)!==-1;});
+  if(!rows.length){body.innerHTML='<tr><td colspan="6" class="empty">Belum ada Goods Receiving. Tekan NEW GOODS RECEIVING untuk membuat transaksi baru.</td></tr>';return;}
+  body.innerHTML='';
+  rows.forEach(function(d){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(d.date||'-')+'</td><td>'+esc(d.supplierName||'-')+'</td><td><b>'+esc(d.plNo||'-')+'</b></td><td>'+esc(d.note||'-')+'</td><td><span class="status">'+esc(d.status||'DRAFT')+'</span></td><td></td>';
+    var btn=document.createElement('button');btn.type='button';btn.textContent='EDIT';
+    btn.addEventListener('click',function(){openDoc(d.id);});
+    tr.lastChild.appendChild(btn);body.appendChild(tr);
+  });
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadData();
-  renderList();
-});
+function saveDraft(){
+  if(!current)return;
+  var date=el('grDate').value;
+  var supplier=el('grSupplier').value;
+  var pl=el('grPL').value.trim();
+  var note=el('grNote').value.trim();
+  if(!date||!supplier||!pl){alert('Tanggal, Supplier, dan Nomor Packing List wajib diisi.');return;}
+  var label=supplier;
+  suppliers().forEach(function(s){if(supplierKey(s)===supplier)label=supplierLabel(s);});
+  current.date=date;current.supplier=supplier;current.supplierName=label;current.plNo=pl;current.note=note;current.status='DRAFT';current.updatedAt=new Date().toISOString();
+  load();
+  var found=false;
+  for(var i=0;i<docs.length;i++){if(docs[i].id===current.id){docs[i]=current;found=true;break;}}
+  if(!found)docs.unshift(current);
+  save();
+  alert('HEADER GOODS RECEIVING BERHASIL DISIMPAN SEBAGAI DRAFT.');
+  back();
+}
+function bind(id,fn){var node=el(id);if(node)node.addEventListener('click',fn);}
+function init(){
+  load();renderList();
+  bind('newGRTop',newGR);bind('newGRMain',newGR);
+  bind('backTop',back);bind('cancelBtn',back);bind('saveBtn',saveDraft);
+  el('search').addEventListener('input',renderList);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+window.addEventListener('error',function(e){console.error('Inventory error',e.error||e.message);});
+})();
