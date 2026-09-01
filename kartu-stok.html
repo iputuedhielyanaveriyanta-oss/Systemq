@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SYSTEMQ • Inventory • Kartu Stok</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f5f7;font-family:Arial,sans-serif;color:#1d2730}
+.topbar{background:#18212a;color:#fff;padding:14px 4%;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand b{display:block;font-size:22px}.brand small{font-size:10px;letter-spacing:1.6px;opacity:.7}
+button,a{font:inherit;font-weight:700;border:1px solid #cfd6db;background:#fff;color:#1d2730;padding:10px 13px;border-radius:9px;cursor:pointer;text-decoration:none}
+main{max-width:1200px;margin:0 auto;padding:24px}
+.pageHead{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}
+.pageHead h1{margin:0 0 5px;font-size:24px}.pageHead p{margin:0;color:#6d7780}
+.panel{background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:18px;margin-bottom:16px}
+.filters{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(150px,.8fr) minmax(220px,1.7fr) minmax(150px,.8fr);gap:12px;align-items:end}
+.field label{display:block;font-size:11px;font-weight:800;margin-bottom:7px}
+input,select{width:100%;font:inherit;border:1px solid #cfd6db;border-radius:9px;padding:12px;background:#fff}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.summary>div{border:1px solid #e2e7eb;border-radius:10px;padding:13px}.summary b{display:block;font-size:22px}.summary span{font-size:11px;color:#6d7780;font-weight:800}
+.tableWrap{overflow:auto;border:1px solid #e4e8eb;border-radius:10px}
+table{width:100%;min-width:1050px;border-collapse:collapse}
+th,td{padding:12px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}
+th{font-size:11px;background:#f7f8f9;white-space:nowrap}
+.empty{text-align:center;color:#75808a;padding:32px}
+.in{font-weight:800}.out{font-weight:800}.balance{font-weight:900;font-size:14px}
+.notice{margin-bottom:14px;padding:12px;border-radius:9px;background:#fff6e9;border:1px solid #f2dfbe;font-size:13px}
+.exportBar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.exportBar button{background:#1d2730;color:#fff;border-color:#1d2730}
+@media(max-width:800px){.topbar,.pageHead{flex-direction:column;align-items:flex-start}main{padding:14px}.filters{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.summary{grid-template-columns:1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><b>SYSTEMQ</b><small>INVENTORY • KARTU STOK</small></div>
+  <a href="./index.html">← INVENTORY</a>
+</header>
+
+<main>
+  <div class="pageHead">
+    <div>
+      <h1>KARTU STOK</h1>
+      <p id="storeLabel">Memuat riwayat pergerakan stok store aktif...</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="storeNotice" class="notice"></div>
+    <div class="filters">
+      <div class="field">
+        <label>TANGGAL DARI</label>
+        <input id="dateFrom" type="date">
+      </div>
+      <div class="field">
+        <label>TANGGAL SAMPAI</label>
+        <input id="dateTo" type="date">
+      </div>
+      <div class="field">
+        <label>CARI BARANG</label>
+        <input id="search" type="search" placeholder="Cari SKU, barcode, atau nama barang...">
+      </div>
+      <div class="field">
+        <label>BRAND</label>
+        <select id="brandFilter"><option value="">SEMUA BRAND</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div><b id="movementTotal">0</b><span>TOTAL PERGERAKAN</span></div>
+    <div><b id="inTotal">0</b><span>TOTAL IN</span></div>
+    <div><b id="outTotal">0</b><span>TOTAL OUT</span></div>
+    <div><b id="balanceTotal">0</b><span>SALDO AKHIR BARIS TERPILIH</span></div>
+  </div>
+
+  <div class="panel">
+    <div class="exportBar"><button id="exportExcel" type="button">⇩ EXPORT EXCEL</button></div>
+    <div class="tableWrap">
+      <table>
+        <thead><tr>
+          <th>NO.</th>
+          <th>TANGGAL</th>
+          <th>JENIS TRANSAKSI</th>
+          <th>NO. DOKUMEN</th>
+          <th>BARCODE</th>
+          <th>SKU</th>
+          <th>NAMA BARANG</th>
+          <th>KETERANGAN</th>
+          <th>IN</th>
+          <th>OUT</th>
+          <th>SALDO BERJALAN</th>
+        </tr></thead>
+        <tbody id="cardBody"><tr><td colspan="11" class="empty">Belum ada pergerakan stok.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+'use strict';
+
+var MASTER_KEY='systemq_v17_data';
+var GR_KEY='systemq_inventory_goods_receiving_v1';
+var STOCK_KEY='systemq_inventory_stock_v1';
+var MOVEMENT_KEY='systemq_inventory_stock_movement_v1';
+
+var master={},docs=[],stockRows=[],movements=[];
+
+function el(id){return document.getElementById(id);}
+function text(v){return String(v===undefined||v===null?'':v);}
+function norm(v){return text(v).trim().toLowerCase();}
+function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+function load(){
+  try{master=JSON.parse(localStorage.getItem(MASTER_KEY)||'{}');}catch(e){master={};}
+  try{docs=JSON.parse(localStorage.getItem(GR_KEY)||'[]');}catch(e){docs=[];}
+  try{stockRows=JSON.parse(localStorage.getItem(STOCK_KEY)||'[]');}catch(e){stockRows=[];}
+  try{movements=JSON.parse(localStorage.getItem(MOVEMENT_KEY)||'[]');}catch(e){movements=[];}
+  if(!master||typeof master!=='object')master={};
+  if(!Array.isArray(master.product))master.product=[];
+  if(!Array.isArray(docs))docs=[];
+  if(!Array.isArray(stockRows))stockRows=[];
+  if(!Array.isArray(movements))movements=[];
+}
+
+function fieldValue(obj,names){
+  for(var i=0;i<names.length;i++){
+    var v=obj&&obj[names[i]];
+    if(v!==undefined&&v!==null&&text(v).trim()!=='')return text(v).trim();
+  }
+  return '';
+}
+
+function productFor(row){
+  var sku=norm(row.sku),barcode=norm(row.barcode);
+  for(var i=0;i<master.product.length;i++){
+    var p=master.product[i];
+    if((sku&&norm(p.sku)===sku)||(barcode&&norm(p.barcode)===barcode))return p;
+  }
+  return {};
+}
+
+function meta(row){
+  var p=productFor(row);
+  return {
+    name:fieldValue(p,['name','productName','nama','itemName']),
+    brand:fieldValue(p,['brand','brandName'])
+  };
+}
+
+function activeStore(){
+  var latest=null;
+  docs.forEach(function(d){
+    if(norm(d.status)!=='posted'||!text(d.storeCode).trim())return;
+    var t=text(d.postedAt||d.updatedAt||d.createdAt);
+    if(!latest||t>text(latest.postedAt||latest.updatedAt||latest.createdAt))latest=d;
+  });
+  if(latest)return {code:text(latest.storeCode),name:text(latest.storeName||latest.storeCode)};
+  if(stockRows.length){
+    var r=stockRows.slice().sort(function(a,b){return text(b.updatedAt).localeCompare(text(a.updatedAt));})[0];
+    return {code:text(r.storeCode),name:text(r.storeName||r.storeCode)};
+  }
+  return {code:'',name:''};
+}
+
+function movementDate(m){
+  return text(m.date||'').slice(0,10);
+}
+
+function movementTime(m){
+  return text(m.timestamp||m.createdAt||m.updatedAt||'');
+}
+
+function referenceNo(m){
+  return text(m.plNo||m.referenceNo||m.referenceId||m.documentNo||'-');
+}
+
+function movementNote(m){
+  var type=norm(m.type);
+  if(text(m.note).trim())return text(m.note).trim();
+  if(text(m.description).trim())return text(m.description).trim();
+  if(type==='goods receiving'){
+    var parts=[];
+    if(text(m.supplier).trim())parts.push('Pengiriman dari '+text(m.supplier).trim());
+    else parts.push('Pengiriman barang');
+    if(text(m.plNo).trim())parts.push('PL '+text(m.plNo).trim());
+    return parts.join(' • ');
+  }
+  if(type.indexOf('sale')!==-1||type.indexOf('penjualan')!==-1||type.indexOf('kasir')!==-1)return 'Transaksi kasir';
+  if(type.indexOf('return')!==-1||type.indexOf('retur')!==-1)return 'Transaksi retur';
+  return text(m.type||'Pergerakan stok');
+}
+
+function filteredRows(){
+  load();
+  var store=activeStore(),from=text(el('dateFrom').value),to=text(el('dateTo').value),q=norm(el('search').value),brand=text(el('brandFilter').value);
+  if(!store.code)return {store:store,rows:[]};
+
+  var rows=movements.filter(function(m){
+    if(text(m.storeCode)!==store.code)return false;
+    var d=movementDate(m);
+    if(from&&d<from)return false;
+    if(to&&d>to)return false;
+    var metaData=meta(m);
+    var hay=norm(m.barcode)+' '+norm(m.sku)+' '+norm(metaData.name)+' '+norm(m.type)+' '+norm(movementNote(m));
+    if(q&&hay.indexOf(q)===-1)return false;
+    if(brand&&metaData.brand!==brand)return false;
+    return true;
+  });
+
+  rows.sort(function(a,b){
+    var da=movementDate(a),db=movementDate(b);
+    if(da!==db)return da.localeCompare(db);
+    return movementTime(a).localeCompare(movementTime(b));
+  });
+  return {store:store,rows:rows};
+}
+
+function renderFilters(){
+  var current=text(el('brandFilter').value),brands=[];
+  load();
+  var store=activeStore();
+  if(store.code){
+    movements.forEach(function(m){
+      if(text(m.storeCode)!==store.code)return;
+      var b=meta(m).brand;
+      if(b&&brands.indexOf(b)===-1)brands.push(b);
+    });
+  }
+  brands.sort(function(a,b){return a.localeCompare(b);});
+  var select=el('brandFilter');
+  select.innerHTML='<option value="">SEMUA BRAND</option>';
+  brands.forEach(function(b){
+    var o=document.createElement('option');o.value=b;o.textContent=b;select.appendChild(o);
+  });
+  if(Array.from(select.options).some(function(o){return o.value===current;}))select.value=current;
+}
+
+function render(){
+  renderFilters();
+  var result=filteredRows(),store=result.store,rows=result.rows;
+  el('storeLabel').textContent=store.code?('STORE: '+(store.name||store.code)):'Belum ada store aktif.';
+  el('storeNotice').textContent=store.code
+    ?'Kartu Stok menampilkan riwayat pergerakan barang secara berurutan. Saldo berjalan dihitung otomatis: saldo sebelumnya + IN − OUT.'
+    :'Belum ada Store aktif atau Stock Movement. Posting Goods Receiving terlebih dahulu.';
+
+  var body=el('cardBody');
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="11" class="empty">Tidak ada pergerakan stok sesuai filter.</td></tr>';
+    el('movementTotal').textContent='0';el('inTotal').textContent='0';el('outTotal').textContent='0';el('balanceTotal').textContent='0';
+    return;
+  }
+
+  var balances={},totalIn=0,totalOut=0,html=[];
+  rows.forEach(function(m,i){
+    var key=text(m.storeCode)+'|'+(text(m.sku).trim()||text(m.barcode).trim());
+    if(!(key in balances))balances[key]=0;
+    var qtyIn=Number(m.qtyIn)||0,qtyOut=Number(m.qtyOut)||0;
+    balances[key]+=qtyIn-qtyOut;
+    totalIn+=qtyIn;totalOut+=qtyOut;
+    var md=meta(m);
+    html.push('<tr>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td>'+esc(movementDate(m)||'-')+'</td>'+
+      '<td><b>'+esc(m.type||'STOCK MOVEMENT')+'</b></td>'+
+      '<td>'+esc(referenceNo(m))+'</td>'+
+      '<td>'+esc(m.barcode||'-')+'</td>'+
+      '<td>'+esc(m.sku||'-')+'</td>'+
+      '<td>'+esc(md.name||'-')+'</td>'+
+      '<td>'+esc(movementNote(m))+'</td>'+
+      '<td class="in">'+(qtyIn||'-')+'</td>'+
+      '<td class="out">'+(qtyOut||'-')+'</td>'+
+      '<td class="balance">'+balances[key]+'</td>'+
+    '</tr>');
+  });
+  body.innerHTML=html.join('');
+  el('movementTotal').textContent=rows.length;
+  el('inTotal').textContent=totalIn;
+  el('outTotal').textContent=totalOut;
+
+  var unique=Object.keys(balances);
+  el('balanceTotal').textContent=unique.length===1?balances[unique[0]]:'-';
+}
+
+function exportExcel(){
+  var result=filteredRows(),rows=result.rows;
+  if(typeof XLSX==='undefined'){alert('Library Excel belum termuat. Coba refresh lalu ulangi Export.');return;}
+  var balances={},data=rows.map(function(m,i){
+    var key=text(m.storeCode)+'|'+(text(m.sku).trim()||text(m.barcode).trim());
+    if(!(key in balances))balances[key]=0;
+    var qtyIn=Number(m.qtyIn)||0,qtyOut=Number(m.qtyOut)||0;
+    balances[key]+=qtyIn-qtyOut;
+    var md=meta(m);
+    return {
+      'NO.':i+1,
+      'TANGGAL':movementDate(m),
+      'JENIS TRANSAKSI':m.type||'STOCK MOVEMENT',
+      'NO. DOKUMEN':referenceNo(m),
+      'BARCODE':m.barcode||'',
+      'SKU':m.sku||'',
+      'NAMA BARANG':md.name||'',
+      'KETERANGAN':movementNote(m),
+      'IN':qtyIn,
+      'OUT':qtyOut,
+      'SALDO BERJALAN':balances[key]
+    };
+  });
+  var ws=XLSX.utils.json_to_sheet(data.length?data:[{'NO.':'','TANGGAL':'','JENIS TRANSAKSI':'','NO. DOKUMEN':'','BARCODE':'','SKU':'','NAMA BARANG':'','KETERANGAN':'','IN':'','OUT':'','SALDO BERJALAN':''}]);
+  ws['!cols']=[{wch:7},{wch:13},{wch:20},{wch:18},{wch:18},{wch:18},{wch:30},{wch:38},{wch:10},{wch:10},{wch:18}];
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Kartu Stok');
+  XLSX.writeFile(wb,'Kartu-Stok-'+(result.store.code||'Store')+'-'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+function init(){
+  el('dateFrom').value='';
+  el('dateTo').value='';
+  render();
+  el('dateFrom').addEventListener('change',render);
+  el('dateTo').addEventListener('change',render);
+  el('search').addEventListener('input',render);
+  el('brandFilter').addEventListener('change',render);
+  el('exportExcel').addEventListener('click',exportExcel);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</body>
+</html>
