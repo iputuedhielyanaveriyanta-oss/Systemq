@@ -1,135 +1,15 @@
 <!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SYSTEMQ</title><link rel="stylesheet" href="style.css">
 <style>
-.modal{padding:12px!important;align-items:flex-start!important;overflow-y:auto!important}
-.modal .card{width:min(94vw,620px)!important;max-width:94vw!important;margin:12px auto!important;padding:22px!important;border-radius:22px!important}
-.modal h2{font-size:clamp(24px,7vw,38px)!important;margin:0 38px 18px 0!important}
-.field{margin:10px 0!important}
-.field label{font-size:16px!important;margin-bottom:5px!important}
-.field input,.field select{min-height:46px!important;padding:10px 12px!important;font-size:16px!important}
-#form{max-height:calc(100vh - 110px);overflow-y:auto;padding-right:3px}
-.promo-box{margin:14px 0;padding:12px;border:1px solid #d6dce3;border-radius:14px}
-.promo-box small{display:block;margin:5px 0 10px;color:#68727c}
-.promo-row{display:grid;grid-template-columns:1fr 1fr .7fr .7fr 34px;gap:6px;margin-bottom:7px}
-.promo-row input{min-width:0!important}
-.promo-row button{padding:0!important;min-height:42px!important}
-@media(max-width:600px){
-  .modal{padding:6px!important}
-  .modal .card{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;margin:4px auto!important;padding:18px 16px!important;border-radius:18px!important}
-  .modal h2{font-size:28px!important;margin-bottom:14px!important}
-  .field{margin:7px 0!important}
-  .field label{font-size:15px!important}
-  .field input,.field select{min-height:42px!important;padding:8px 10px!important;font-size:15px!important}
-  #form{max-height:calc(100vh - 85px)}
-  .promo-row{grid-template-columns:1fr 1fr;gap:5px}
-  .promo-row button{grid-column:2;max-width:44px}
-}
-</style>
-
-<style id="safe-toolbar-layout">
-.toolbar{
-  display:grid!important;
-  grid-template-columns:repeat(auto-fit,minmax(118px,1fr))!important;
-  gap:9px!important;
-  align-items:stretch!important;
-}
-.toolbar > button,.toolbar > label{
-  min-height:44px!important;
-  height:44px!important;
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  padding:0 12px!important;
-  margin:0!important;
-  width:100%!important;
-}
-.toolbar > label input[type=file]{display:none!important}
-@media(max-width:600px){
-  .toolbar{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
-  .toolbar > button,.toolbar > label{min-height:42px!important;height:42px!important;font-size:14px!important}
-}
-</style>
-
-<style id="toolbar-final-compact">
-.master-toolbar{
- display:flex!important;
- flex-wrap:wrap!important;
- gap:8px!important;
- align-items:center!important;
- margin:8px 0 14px!important;
- padding:3px!important;
-}
-.master-toolbar button,.master-toolbar .tool-file{
- min-width:94px!important;
- height:38px!important;
- min-height:38px!important;
- padding:0 12px!important;
- margin:0!important;
- border-radius:12px!important;
- display:inline-flex!important;
- align-items:center!important;
- justify-content:center!important;
- box-sizing:border-box!important;
- font-size:13px!important;
- font-weight:700!important;
- white-space:nowrap!important;
-}
-.master-toolbar .tool-file{cursor:pointer!important}
-.master-toolbar .tool-file input{display:none!important}
-@media(max-width:650px){
- .master-toolbar{gap:7px!important}
- .master-toolbar button,.master-toolbar .tool-file{
-  flex:1 1 calc(33.333% - 7px)!important;
-  min-width:0!important;
-  height:36px!important;
-  min-height:36px!important;
-  padding:0 8px!important;
-  font-size:12px!important;
- }
-}
-@media(max-width:390px){
- .master-toolbar button,.master-toolbar .tool-file{flex:1 1 calc(50% - 7px)!important}
-}
-</style>
-
-<style id="inventory-menu-layout">
-.inventory-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px;max-width:720px}
-.inventory-card{min-height:118px;padding:18px;border:1px solid #dce3e8;border-radius:14px;background:#fff;text-align:left;text-decoration:none;color:#1d2833;font:inherit;display:block;box-sizing:border-box}
-button.inventory-card{width:100%;cursor:pointer}
-.inventory-card b{display:block;font-size:16px;margin-bottom:7px}
-.inventory-card span{display:block;color:#687582;font-size:13px;line-height:1.45;font-weight:400}
-@media(max-width:650px){.inventory-menu{grid-template-columns:1fr}.inventory-card{min-height:96px;padding:16px}}
-</style>
-</head><body>
-<header><div><b>SYSTEMQ</b><small>SYSTEM TOKO</small></div><nav><button onclick="show('master')">MASTER GLOBAL</button><button onclick="show('inventory')">INVENTORY</button><button onclick="show('report')">LAPORAN</button><button onclick="show('finance')">FINANCE & AKUNTING</button></nav></header>
+.modal{padding:12px!important;align-items:flex-start!important;overflow-y:auto!important}.modal .card{width:min(94vw,620px)!important;max-width:94vw!important;margin:12px auto!important;padding:22px!important;border-radius:22px!important}.modal h2{font-size:clamp(24px,7vw,38px)!important;margin:0 38px 18px 0!important}.field{margin:10px 0!important}.field label{font-size:16px!important;margin-bottom:5px!important}.field input,.field select{min-height:46px!important;padding:10px 12px!important;font-size:16px!important}#form{max-height:calc(100vh - 110px);overflow-y:auto;padding-right:3px}.promo-box{margin:14px 0;padding:12px;border:1px solid #d6dce3;border-radius:14px}.promo-box small{display:block;margin:5px 0 10px;color:#68727c}.promo-row{display:grid;grid-template-columns:1fr 1fr .7fr .7fr 34px;gap:6px;margin-bottom:7px}.promo-row input{min-width:0!important}.promo-row button{padding:0!important;min-height:42px!important}
+@media(max-width:600px){.modal{padding:6px!important}.modal .card{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;margin:4px auto!important;padding:18px 16px!important;border-radius:18px!important}.modal h2{font-size:28px!important;margin-bottom:14px!important}.field{margin:7px 0!important}.field label{font-size:15px!important}.field input,.field select{min-height:42px!important;padding:8px 10px!important;font-size:15px!important}#form{max-height:calc(100vh - 85px)}.promo-row{grid-template-columns:1fr 1fr;gap:5px}.promo-row button{grid-column:2;max-width:44px}}
+.master-toolbar{display:flex!important;flex-wrap:wrap!important;gap:8px!important;align-items:center!important;margin:8px 0 14px!important;padding:3px!important}.master-toolbar button,.master-toolbar .tool-file{min-width:94px!important;height:38px!important;min-height:38px!important;padding:0 12px!important;margin:0!important;border-radius:12px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;font-size:13px!important;font-weight:700!important;white-space:nowrap!important}.master-toolbar .tool-file{cursor:pointer!important}.master-toolbar .tool-file input{display:none!important}
+.inventory-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px;max-width:720px}.inventory-card{min-height:118px;padding:18px;border:1px solid #dce3e8;border-radius:14px;background:#fff;text-align:left;text-decoration:none;color:#1d2833;font:inherit;display:block;box-sizing:border-box}.inventory-card b{display:block;font-size:16px;margin-bottom:7px}.inventory-card span{display:block;color:#687582;font-size:13px;line-height:1.45;font-weight:400}.cashier-menu{margin-top:16px;max-width:720px}.cashier-card{min-height:118px;padding:18px;border:1px solid #dce3e8;border-radius:14px;background:#fff;text-align:left;text-decoration:none;color:#1d2833;font:inherit;display:block;box-sizing:border-box}.cashier-card b{display:block;font-size:16px;margin-bottom:7px}.cashier-card span{display:block;color:#687582;font-size:13px;line-height:1.45;font-weight:400}
+@media(max-width:650px){.inventory-menu{grid-template-columns:1fr}.inventory-card,.cashier-card{min-height:96px;padding:16px}}
+</style></head><body>
+<header><div><b>SYSTEMQ</b><small>SYSTEM TOKO</small></div><nav><button onclick="show('master')">MASTER GLOBAL</button><button onclick="show('inventory')">INVENTORY</button><button onclick="show('cashier')">KASIR</button><button onclick="show('report')">LAPORAN</button><button onclick="show('finance')">FINANCE & AKUNTING</button></nav></header>
 <main>
-<section id="master"><h1>MASTER GLOBAL</h1><p>Kelola seluruh data master yang digunakan bersama oleh semua store.</p>
-<div class="filter"><select id="type" onchange="setType(this.value)"><option value="store">STORE</option><option value="guide">GUIDE</option><option value="supplier">SUPPLIER</option><option value="brand">BRAND</option><option value="spare">SPARE</option><option value="color">WARNA</option><option value="size">KOLOM SIZE</option><option value="product">MASTER BARANG</option></select></div>
-<div class="toolbar master-toolbar">
-<button class="orange" onclick="add()">＋ REGISTER</button>
-<button onclick="edit()">✏ EDIT</button>
-<button class="red" onclick="del()">🗑 DELETE</button>
-<label class="tool-file">⇧ IMPORT<input type="file" accept=".csv" onchange="importCSV(event)"></label>
-<button onclick="exportData()">⇩ EXPORT</button>
-</div>
-
-<input id="search" placeholder="Cari data..." oninput="render()"><b id="count"></b><h3 id="tableTitle"></h3>
-<div class="table"><table><thead id="head"></thead><tbody id="body"></tbody></table></div></section>
-
-<section id="inventory" class="hidden">
-<h1>INVENTORY</h1>
-<p>Pilih proses Inventory yang ingin digunakan.</p>
-<div class="inventory-menu">
-  <a class="inventory-card" href="./inventory.html"><b>GOODS RECEIVING</b><span>Penerimaan barang, Import PL, input manual, Scan dan Posting stok.</span></a>
-  <a class="inventory-card" href="./saldo-stok.html"><b>SALDO STOK</b><span>Lihat saldo stok store aktif dengan filter Brand dan Diskon.</span></a>
-  <a class="inventory-card" href="./rubah-stok.html"><b>RUBAH STOK</b><span>Stock adjustment untuk penambahan atau pengurangan stok.</span></a>
-  <a class="inventory-card" href="./kartu-stok.html"><b>KARTU STOK</b><span>Riwayat seluruh pergerakan stok per barang dengan saldo berjalan otomatis.</span></a>
-</div>
-</section>
-
-<section id="report" class="hidden"><h1>LAPORAN</h1><div class="box">Modul laporan akan dibangun setelah Inventory.</div></section>
-<section id="finance" class="hidden"><h1>FINANCE & AKUNTING</h1><div class="box">Akses nanti menggunakan kode rahasia.</div></section>
-</main>
-<div id="modal" class="modal hidden"><div class="card"><button class="close" onclick="closeModal()">×</button><h2 id="modalTitle"></h2><form id="form" onsubmit="save(event)"></form></div></div>
-<script>function inventoryComingSoon(name){alert(name+" akan kita kerjakan setelah modul Saldo Stok selesai.");}</script>
-<script src="app.js"></script></body></html>
+<section id="master"><h1>MASTER GLOBAL</h1><p>Kelola seluruh data master yang digunakan bersama oleh semua store.</p><div class="filter"><select id="type" onchange="setType(this.value)"><option value="store">STORE</option><option value="guide">GUIDE</option><option value="supplier">SUPPLIER</option><option value="brand">BRAND</option><option value="spare">SPARE</option><option value="color">WARNA</option><option value="size">KOLOM SIZE</option><option value="product">MASTER BARANG</option></select></div><div class="toolbar master-toolbar"><button class="orange" onclick="add()">＋ REGISTER</button><button onclick="edit()">✏ EDIT</button><button class="red" onclick="del()">🗑 DELETE</button><label class="tool-file">⇧ IMPORT<input type="file" accept=".csv" onchange="importCSV(event)"></label><button onclick="exportData()">⇩ EXPORT</button></div><input id="search" placeholder="Cari data..." oninput="render()"><b id="count"></b><h3 id="tableTitle"></h3><div class="table"><table><thead id="head"></thead><tbody id="body"></tbody></table></div></section>
+<section id="inventory" class="hidden"><h1>INVENTORY</h1><p>Pilih proses Inventory yang ingin digunakan.</p><div class="inventory-menu"><a class="inventory-card" href="./inventory.html"><b>GOODS RECEIVING</b><span>Penerimaan barang, Import PL, input manual, Scan dan Posting stok.</span></a><a class="inventory-card" href="./saldo-stok.html"><b>SALDO STOK</b><span>Lihat saldo stok store aktif dengan filter Brand dan Diskon.</span></a><a class="inventory-card" href="./rubah-stok.html"><b>RUBAH STOK</b><span>Stock adjustment untuk penambahan atau pengurangan stok.</span></a><a class="inventory-card" href="./kartu-stok.html"><b>KARTU STOK</b><span>Riwayat seluruh pergerakan stok per barang dengan saldo berjalan otomatis.</span></a></div></section>
+<section id="cashier" class="hidden"><h1>KASIR</h1><p>Pilih proses kasir yang ingin digunakan.</p><div class="cashier-menu"><a class="cashier-card" href="./kasir.html"><b>POINT OF SALE / KASIR</b><span>Penjualan, diskon manual dengan keterangan wajib, pembayaran, pengurangan stok otomatis dan riwayat transaksi.</span></a></div></section>
+<section id="report" class="hidden"><h1>LAPORAN</h1><div class="box">Modul laporan akan dibangun setelah Inventory.</div></section><section id="finance" class="hidden"><h1>FINANCE & AKUNTING</h1><div class="box">Akses nanti menggunakan kode rahasia.</div></section>
+</main><div id="modal" class="modal hidden"><div class="card"><button class="close" onclick="closeModal()">×</button><h2 id="modalTitle"></h2><form id="form" onsubmit="save(event)"></form></div></div><script>function inventoryComingSoon(name){alert(name+" akan kita kerjakan setelah modul Saldo Stok selesai.");}</script><script src="app.js"></script></body></html>
