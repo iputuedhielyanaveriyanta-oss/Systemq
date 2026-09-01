@@ -183,7 +183,13 @@ const $=id=>document.getElementById(id),txt=v=>String(v??''),norm=v=>txt(v).trim
 function load(){try{master=JSON.parse(localStorage.getItem(MASTER)||'{}')}catch(e){master={}}try{docs=JSON.parse(localStorage.getItem(GR)||'[]')}catch(e){docs=[]}try{stocks=JSON.parse(localStorage.getItem(STOCK)||'[]')}catch(e){stocks=[]}try{moves=JSON.parse(localStorage.getItem(MOVE)||'[]')}catch(e){moves=[]}try{trx=JSON.parse(localStorage.getItem(TRX)||'[]')}catch(e){trx=[]}if(!Array.isArray(master.product))master.product=[]}
 function store(){let x=null;docs.forEach(d=>{if(norm(d.status)!=='posted'||!txt(d.storeCode).trim())return;let t=txt(d.postedAt||d.updatedAt||d.createdAt);if(!x||t>txt(x.postedAt||x.updatedAt||x.createdAt))x=d});if(x)return {code:txt(x.storeCode),name:txt(x.storeName||x.storeCode)};if(stocks.length){let r=stocks.slice().sort((a,b)=>txt(b.updatedAt).localeCompare(txt(a.updatedAt)))[0];return {code:txt(r.storeCode),name:txt(r.storeName||r.storeCode)}}return {code:'',name:''}}
 function stock(s,p){let key=s.code+'|'+(txt(p.sku).trim()||txt(p.barcode).trim()),r=stocks.find(x=>txt(x.key)===key);return r?Number(r.qtyOnHand)||0:0}
-function price(p){return num(p.price||p.sellingPrice||p.harga)}function disc(p){return Math.max(0,Math.min(100,num(p.discount||p.diskon)))}
+function price(p){return num(p.price||p.sellingPrice||p.harga||p.salePrice||p.retailPrice)}
+function disc(p){return Math.max(0,Math.min(100,num(p.discount||p.diskon||p.discountPercent)))}
+function barcodeOf(p){return txt(p.barcode||p.barCode||p.barcodeNumber||p.ean||p.upc||p.code||'').trim()}
+function skuOf(p){return txt(p.sku||p.SKU||p.productCode||p.itemCode||p.code||'').trim()}
+function codeNorm(v){return txt(v).replace(/[^0-9A-Za-z]/g,'').toLowerCase()}
+function sameCode(a,b){let x=codeNorm(a),y=codeNorm(b);if(x===y)return true;if(/^0+\d+$/.test(x)&&x.replace(/^0+/,'')===y)return true;if(/^0+\d+$/.test(y)&&y.replace(/^0+/,'')===x)return true;return false}
+function findProduct(code){let q=txt(code).trim();return master.product.find(p=>sameCode(barcodeOf(p),q)||sameCode(skuOf(p),q))||master.product.find(p=>norm(txt(p.name||p.productName||p.nama))===norm(q))||null}
 function guides(){return Array.isArray(master.guide)?master.guide:[]}
 function guideNoOf(g){return txt(g.guideNo||g.code||g.no||g.id||g.guideCode).trim()}
 function guideNameOf(g){return txt(g.name||g.guideName||g.nama||g.fullName).trim()}
@@ -192,26 +198,31 @@ function selectedGuide(){let no=txt($('guideNo').value).trim();if(!no)return nul
 function guideInput(){let g=selectedGuide(),name=$('guideName');if(!txt($('guideNo').value).trim()){name.textContent='Tidak ada guide dipilih';return}name.textContent=g?(guideNameOf(g)||'Nama guide belum terisi'):'No. Guide tidak ditemukan'}
 function guideKey(e){if(e.key==='Enter'){e.preventDefault();let g=selectedGuide();if(!g){alert('No. Guide tidak ditemukan di Master Guide.');return}$('guideName').textContent=guideNameOf(g)||'Nama guide belum terisi';$('guideNo').blur()}}
 function calc(i){let base=i.price*i.qty,pd=base*i.productDiscount/100,after=base-pd,md=after*i.manualDiscount/100;return {base,pd,md,total:after-md}}
+function addProduct(p){
+ load();
+ let s=store();
+ if(!p)return false;
+ let available=stock(s,p);
+ if(available<=0){alert('Produk ditemukan, tetapi stok di Store aktif kosong.');return false}
+ let bc=barcodeOf(p),sku=skuOf(p),key=sku||bc||txt(p.id||p.name),i=cart.find(x=>x.productKey===key);
+ if(i){if(i.qty>=available){alert('Qty tidak boleh melebihi stok tersedia.');return false}i.qty++}
+ else cart.push({productKey:key,barcode:bc,sku:sku,name:txt(p.name||p.productName||p.nama),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});
+ renderCart();
+ return true;
+}
 function scanProduct(){
  load();
  let code=txt($('search').value).trim();
- if(!code)return;
+ if(!code){$('search').focus();return}
  let s=store();
- if(!s.code){alert('Belum ada Store aktif.');return}
- let p=master.product.find(x=>norm(txt(x.barcode))===norm(code)||norm(txt(x.sku))===norm(code));
- if(!p){
-   let exact=master.product.find(x=>norm(txt(x.name))===norm(code));
-   p=exact||null;
- }
- if(!p){alert('Produk dengan SKU / Barcode tersebut tidak ditemukan.');return}
- if(stock(s,p)<=0){alert('Produk ditemukan, tetapi stok di Store aktif kosong.');return}
- window.add(txt(p.barcode));
- $('search').value='';
- products();
- $('search').focus();
+ if(!s.code){alert('Belum ada Store aktif / stok belum tersedia.');return}
+ let p=findProduct(code);
+ if(!p){alert('Produk dengan SKU / Barcode '+code+' tidak ditemukan di Master Barang.');return}
+ if(addProduct(p)){$('search').value='';products();$('search').focus()}
 }
-function products(){load();let s=store(),q=norm($('search').value),rows=master.product.filter(p=>stock(s,p)>0&&(!q||(norm(p.name)+' '+norm(p.sku)+' '+norm(p.barcode)+' '+norm(p.brand)).includes(q));$('productList').innerHTML=!s.code?'<div class="empty">Belum ada Store aktif / stok tersedia.</div>':!rows.length?'<div class="empty">Produk tidak ditemukan atau stok kosong.</div>':rows.slice(0,100).map(p=>`<div class="product"><div><b>${esc(p.name||'-')}</b><small>${esc(p.sku||'-')} • ${esc(p.barcode||'-')} • STOK: ${stock(s,p)}${disc(p)?' • DISKON '+disc(p)+'%':''}</small></div><div><div class="price">${rp(price(p))}</div><button onclick="add('${esc(p.barcode)}')">+ TAMBAH</button></div></div>`).join('')}
-window.add=bc=>{load();let s=store(),p=master.product.find(x=>txt(x.barcode)===txt(bc));if(!p)return;let i=cart.find(x=>x.barcode===bc);if(i){if(i.qty>=stock(s,p))return alert('Qty tidak boleh melebihi stok tersedia.');i.qty++}else cart.push({barcode:txt(p.barcode),sku:txt(p.sku),name:txt(p.name),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});renderCart()}
+function products(){load();let s=store(),q=norm($('search').value),rows=master.product.filter(p=>stock(s,p)>0&&(!q||(norm(txt(p.name||p.productName||p.nama))+' '+norm(skuOf(p))+' '+norm(barcodeOf(p))+' '+norm(p.brand)).includes(q));$('productList').innerHTML=!s.code?'<div class="empty">Belum ada Store aktif / stok tersedia.</div>':!rows.length?'<div class="empty">Produk tidak ditemukan atau stok kosong.</div>':rows.slice(0,100).map((p,n)=>`<div class="product"><div><b>${esc(p.name||p.productName||p.nama||'-')}</b><small>${esc(skuOf(p)||'-')} • ${esc(barcodeOf(p)||'-')} • STOK: ${stock(s,p)}${disc(p)?' • DISKON '+disc(p)+'%':''}</small></div><div><div class="price">${rp(price(p))}</div><button type="button" onclick="addByIndex(${n})">+ TAMBAH</button></div></div>`).join('');window.__visibleProducts=rows.slice(0,100)}
+window.addByIndex=n=>{let p=(window.__visibleProducts||[])[n];if(!p){alert('Produk tidak dapat dibaca. Coba cari ulang.');return}addProduct(p)}
+window.add=code=>{load();let p=findProduct(code);if(!p){alert('Produk tidak ditemukan.');return}addProduct(p)}
 function renderCart(){let b=$('cartBody');b.innerHTML=!cart.length?'<tr><td colspan="8" class="empty">Keranjang masih kosong.</td></tr>':cart.map((i,n)=>{let c=calc(i);return `<tr><td><b>${esc(i.name)}</b><br><small>${esc(i.sku)}</small></td><td>${rp(i.price)}</td><td>${i.productDiscount}%</td><td><input type="number" min="0" max="100" value="${i.manualDiscount}" onchange="md(${n},this.value)"></td><td><input value="${esc(i.discountReason)}" placeholder="Wajib jika diskon manual" oninput="reason(${n},this.value)"></td><td><div class="qty"><button onclick="qty(${n},-1)">−</button><b>${i.qty}</b><button onclick="qty(${n},1)">+</button></div></td><td><b>${rp(c.total)}</b></td><td><button class="danger" onclick="remove(${n})">×</button></td></tr>`}).join('');totals()}
 window.md=(n,v)=>{cart[n].manualDiscount=Math.max(0,Math.min(100,num(v)));renderCart()};window.reason=(n,v)=>cart[n].discountReason=txt(v);window.qty=(n,d)=>{cart[n].qty=Math.max(0,cart[n].qty+d);if(!cart[n].qty)cart.splice(n,1);renderCart()};window.remove=n=>{cart.splice(n,1);renderCart()};window.clearCart=()=>{if(confirm('Kosongkan seluruh keranjang?')){cart=[];renderCart()}}
 function totals(){let a=0,b=0,c=0,t=0;cart.forEach(i=>{let x=calc(i);a+=x.base;b+=x.pd;c+=x.md;t+=x.total});$('subtotal').textContent=rp(a);$('prodDisc').textContent='- '+rp(b);$('manualDisc').textContent='- '+rp(c);$('grand').textContent=rp(t);let cash=num($('cash').value);$('change').value=$('payment').value==='CASH'?rp(Math.max(0,cash-t)):rp(0);$('discStatus').value=cart.filter(i=>i.manualDiscount>0).length?'Ada diskon manual':'Tidak ada diskon manual'}
@@ -235,7 +246,7 @@ function printReceipt(){window.print();}
 function nextReceiptNo(s,now){let date=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');let prefix=(txt(s.code).trim()||'STORE').toUpperCase()+'-'+date+'-';let max=0;(Array.isArray(trx)?trx:[]).forEach(t=>{let id=txt(t.receiptNo||t.id);if(id.startsWith(prefix)){let n=parseInt(id.slice(prefix.length),10);if(n>max)max=n}});return prefix+String(max+1).padStart(4,'0')}
 window.pay=()=>{load();let s=store();if(!s.code)return alert('Store aktif belum tersedia.');if(!cart.length)return alert('Keranjang masih kosong.');for(let i of cart)if(i.manualDiscount>0&&!i.discountReason.trim())return alert('Keterangan Diskon wajib diisi untuk '+i.name+'.');let total=cart.reduce((a,i)=>a+calc(i).total,0);if($('payment').value==='CASH'&&num($('cash').value)<total)return alert('Uang diterima kurang dari total pembayaran.');if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>({...i,...calc(i)}));items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});let received=$('payment').value==='CASH'?num($('cash').value):total,change=$('payment').value==='CASH'?Math.max(0,received-total):0,transaction={id,receiptNo:id,date:now.toISOString().slice(0,10),timestamp:now.toISOString(),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,cashReceived:received,changeAmount:change,note:$('note').value,status:'PAID'};trx.unshift(transaction);localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));cart=[];$('cash').value='';$('note').value='';$('guideNo').value='';$('guideName').textContent='Tidak ada guide dipilih';render();showReceipt(transaction)}
 function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}let scanTimer=null;
-function autoScanExact(){clearTimeout(scanTimer);scanTimer=setTimeout(()=>{let code=txt($('search').value).trim();if(!code)return;load();let exact=master.product.find(x=>norm(txt(x.barcode))===norm(code)||norm(txt(x.sku))===norm(code));if(exact)scanProduct()},180)}
+function autoScanExact(){clearTimeout(scanTimer);scanTimer=setTimeout(()=>{let code=txt($('search').value).trim();if(!code)return;load();let exact=findProduct(code);if(exact)scanProduct()},180)}
 $('search').addEventListener('input',()=>{products();autoScanExact()});
 $('search').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='Go'||e.key==='Done'){e.preventDefault();scanProduct()}});
 $('search').addEventListener('search',scanProduct);
