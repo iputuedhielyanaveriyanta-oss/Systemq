@@ -4,24 +4,130 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SYSTEMQ • Kasir</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f5f7;font-family:Arial,sans-serif;color:#1d2730}.topbar{background:#18212a;color:#fff;padding:14px 4%;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand b{display:block;font-size:22px}.brand small{font-size:10px;letter-spacing:1.5px;opacity:.75}button,a{font:inherit;font-weight:700;border:1px solid #cfd6db;background:#fff;color:#1d2730;padding:10px 13px;border-radius:9px;cursor:pointer;text-decoration:none}main{max-width:1450px;margin:auto;padding:22px}.head{display:flex;justify-content:space-between;align-items:end;margin-bottom:16px}.head h1{margin:0 0 5px}.head p{margin:0;color:#6d7780}.notice{padding:12px;border:1px solid #f2dfbe;background:#fff6e9;border-radius:9px;font-size:12px;margin-bottom:14px}.layout{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(420px,1.35fr) minmax(300px,1fr);gap:16px}.panel{background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:18px}.field label{display:block;font-size:11px;font-weight:800;margin-bottom:7px}input,select,textarea{width:100%;font:inherit;border:1px solid #cfd6db;border-radius:9px;padding:11px}.productList{margin-top:12px;border-top:1px solid #edf0f2;max-height:600px;overflow:auto}.product{padding:12px 3px;border-bottom:1px solid #edf0f2;display:flex;justify-content:space-between;gap:10px}.product small{display:block;color:#6d7780;margin-top:4px}.price{font-weight:900;text-align:right}.cart{overflow:auto;border:1px solid #e3e7ea;border-radius:10px}.cart table,.history table{width:100%;min-width:850px;border-collapse:collapse}.cart th,.cart td,.history th,.history td{padding:10px;border-bottom:1px solid #edf0f2;text-align:left;font-size:12px;vertical-align:top}.cart th,.history th{background:#f7f8f9;font-size:10px}.cart input{padding:8px}.qty{display:flex;gap:5px;align-items:center}.qty button{padding:5px 9px}.empty{text-align:center;color:#75808a;padding:28px}.totals{margin-top:14px;border-top:1px solid #e5e9ec;padding-top:12px}.row{display:flex;justify-content:space-between;margin:7px 0}.grand{font-size:23px;font-weight:900;margin-top:12px}.payment{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.primary{background:#1d2730;color:#fff;border-color:#1d2730}.danger{color:#b42318;border-color:#efc2bd}.history{margin-top:18px}.historyWrap{overflow:auto;border:1px solid #e3e7ea;border-radius:10px}.badge{font-size:10px;font-weight:900;border:1px solid #dce2e6;border-radius:999px;padding:4px 7px}.hidden{display:none!important}@media(max-width:900px){.layout{grid-template-columns:1fr}.head,.topbar{flex-direction:column;align-items:flex-start}.payment{grid-template-columns:1fr}main{padding:14px}}
+*{box-sizing:border-box}body{margin:0;background:#f3f5f7;font-family:Arial,sans-serif;color:#1d2730}.topbar{background:#18212a;color:#fff;padding:14px 4%;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand b{display:block;font-size:22px}.brand small{font-size:10px;letter-spacing:1.5px;opacity:.75}button,a{font:inherit;font-weight:700;border:1px solid #cfd6db;background:#fff;color:#1d2730;padding:10px 13px;border-radius:9px;cursor:pointer;text-decoration:none}main{max-width:1450px;margin:auto;padding:22px}.head{display:flex;justify-content:space-between;align-items:end;margin-bottom:16px}.head h1{margin:0 0 5px}.head p{margin:0;color:#6d7780}.notice{padding:12px;border:1px solid #f2dfbe;background:#fff6e9;border-radius:9px;font-size:12px;margin-bottom:14px}.layout{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}.panel{background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:18px}.field label{display:block;font-size:11px;font-weight:800;margin-bottom:7px}input,select,textarea{width:100%;font:inherit;border:1px solid #cfd6db;border-radius:9px;padding:11px}.productList{margin-top:12px;border-top:1px solid #edf0f2;max-height:600px;overflow:auto}.product{padding:12px 3px;border-bottom:1px solid #edf0f2;display:flex;justify-content:space-between;gap:10px}.product small{display:block;color:#6d7780;margin-top:4px}.price{font-weight:900;text-align:right}.cart{overflow:auto;border:1px solid #e3e7ea;border-radius:10px}.cart table,.history table{width:100%;min-width:850px;border-collapse:collapse}.cart th,.cart td,.history th,.history td{padding:10px;border-bottom:1px solid #edf0f2;text-align:left;font-size:12px;vertical-align:top}.cart th,.history th{background:#f7f8f9;font-size:10px}.cart input{padding:8px}.qty{display:flex;gap:5px;align-items:center}.qty button{padding:5px 9px}.empty{text-align:center;color:#75808a;padding:28px}.totals{margin-top:14px;border-top:1px solid #e5e9ec;padding-top:12px}.row{display:flex;justify-content:space-between;margin:7px 0}.grand{font-size:23px;font-weight:900;margin-top:12px}.payment{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.primary{background:#1d2730;color:#fff;border-color:#1d2730}.danger{color:#b42318;border-color:#efc2bd}.history{margin-top:18px}.historyWrap{overflow:auto;border:1px solid #e3e7ea;border-radius:10px}.badge{font-size:10px;font-weight:900;border:1px solid #dce2e6;border-radius:999px;padding:4px 7px}.hidden{display:none!important}@media(max-width:900px){.layout{grid-template-columns:1fr}.head,.topbar{flex-direction:column;align-items:flex-start}.payment{grid-template-columns:1fr}main{padding:14px}}
 
-.customerPanel{background:#eef7f4;border:1px solid #b9d9cf;position:sticky;top:16px}
-.customerTitle{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #cfe3dc}
-.customerTitle h2{margin:0;font-size:18px}
-.customerTitle small{font-weight:700;color:#53645f}
-.customerItems{min-height:180px}
-.customerItem{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #d7e7e1}
-.customerItem b{display:block;font-size:14px;margin-bottom:5px}
-.customerItem small{display:block;color:#61716b}
-.customerItemPrice{text-align:right;white-space:nowrap;font-weight:900}
-.customerSummary{margin-top:16px;padding:16px;border-radius:12px;background:#fff;border:1px solid #d2e3dd}
-.customerTotal{margin-top:12px;padding-top:14px;border-top:2px solid #b9d9cf;font-size:27px;font-weight:900;display:flex;justify-content:space-between;gap:12px}
-.customerPayment{margin-top:14px;padding:13px;border-radius:10px;background:#e0efe9;font-size:12px}
-.customerEmpty{text-align:center;color:#71817b;padding:38px 12px}
-.customerDiscount{font-size:11px;color:#65736e;margin-top:4px}
-.customerOnly{display:block}
-@media(max-width:900px){.customerPanel{position:static}.customerTotal{font-size:23px}}
+
+/* PEMBEDAAN VISUAL AREA POS */
+.layout > .panel:first-child{
+  background:#fff8ed;
+  border-color:#ead8b8;
+}
+.layout > .panel:nth-child(2){
+  background:#f2f6f8;
+  border-color:#cbd7dd;
+}
+.layout > .panel:nth-child(2) > h2,
+.layout > .panel:nth-child(2) > div:first-child h2{
+  color:#24323a;
+}
+.layout > .panel:nth-child(2) .totals{
+  background:#ffffff;
+  border:1px solid #d4dde2;
+  border-radius:12px;
+  padding:14px;
+}
+.layout > .panel:nth-child(2) .grand{
+  background:#24323a;
+  color:#ffffff;
+  border-radius:10px;
+  padding:14px;
+  margin:12px -2px 0;
+}
+.layout > .panel:nth-child(2) .payment{
+  background:#ffffff;
+  border:1px solid #d4dde2;
+  border-radius:12px;
+  padding:14px;
+}
+.layout > .panel:nth-child(2) .actions{
+  background:#e5edf1;
+  border-radius:12px;
+  padding:12px;
+}
+.layout > .panel:nth-child(2) .primary{
+  background:#24323a;
+  border-color:#24323a;
+}
+@media(max-width:900px){
+  .layout > .panel:first-child{background:#fff8ed}
+  .layout > .panel:nth-child(2){background:#eef4f6}
+}
+
+/* STRUK / RESI */
+.receiptModal{position:fixed;inset:0;background:rgba(24,33,42,.68);z-index:9999;padding:20px;overflow:auto}
+.receiptModal.hidden{display:none}
+.receiptCard{width:min(100%,430px);margin:20px auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.28)}
+.receiptHead{text-align:center;border-bottom:1px dashed #aeb8be;padding-bottom:14px}
+.receiptHead h2{margin:0 0 5px;font-size:23px}.receiptHead p{margin:3px 0;color:#61707a;font-size:12px}
+.receiptMeta{font-size:12px;padding:12px 0;border-bottom:1px dashed #aeb8be}.receiptMeta div{display:flex;justify-content:space-between;gap:12px;margin:5px 0}
+.receiptItems{padding:10px 0;border-bottom:1px dashed #aeb8be}.receiptItem{margin:9px 0}.receiptItemTop{display:flex;justify-content:space-between;gap:10px;font-weight:800}.receiptItemSub{display:flex;justify-content:space-between;gap:10px;color:#64717a;font-size:12px;margin-top:4px}
+.receiptTotals{padding:12px 0}.receiptTotals .rrow{display:flex;justify-content:space-between;margin:6px 0;font-size:13px}.receiptTotals .rgrand{font-size:22px;font-weight:900;border-top:2px solid #25333b;padding-top:10px;margin-top:10px}
+.receiptFooter{text-align:center;font-size:12px;color:#63707a;border-top:1px dashed #aeb8be;padding-top:14px}
+.receiptActions{display:flex;gap:9px;margin-top:16px}.receiptActions button{flex:1}.receiptClose{background:#eef2f4}
+@media print{body>*:not(#receiptModal){display:none!important}#receiptModal{position:static!important;background:#fff!important;padding:0!important;display:block!important}.receiptCard{box-shadow:none!important;margin:0!important;width:100%!important;max-width:none!important;padding:0!important}.receiptActions{display:none!important}}
+
+/* MODE LAYAR KASIR KOMPAK */
+body{font-size:14px}
+.topbar{padding:10px 3%}
+.brand b{font-size:19px}
+main{max-width:1500px;padding:14px}
+.head{margin-bottom:10px}
+.head h1{font-size:25px}
+.head p{font-size:12px}
+.notice{padding:9px;font-size:11px;margin-bottom:10px}
+.layout{gap:10px}
+.panel{padding:12px;border-radius:11px}
+.field label{font-size:10px;margin-bottom:5px}
+input,select,textarea{padding:8px 9px;font-size:13px}
+.product{padding:8px 2px}
+.product b{font-size:13px}
+.product small{font-size:10px}
+.product button{padding:7px 9px;font-size:11px}
+.productList{margin-top:8px;max-height:470px}
+.cart th,.cart td,.history th,.history td{padding:7px;font-size:11px}
+.cart th,.history th{font-size:9px}
+.cart input{padding:6px;font-size:11px}
+.qty button{padding:4px 7px}
+.totals{margin-top:10px;padding-top:8px}
+.row{margin:5px 0;font-size:12px}
+.grand{font-size:19px;margin-top:8px}
+.payment{gap:8px;margin-top:10px}
+.actions{margin-top:10px}
+.actions button{padding:9px 12px;font-size:12px}
+.history{margin-top:12px}
+h2{font-size:16px!important}
+@media(max-width:900px){
+ body{font-size:13px}
+ .topbar{padding:9px 12px}
+ main{padding:10px}
+ .head h1{font-size:22px}
+ .panel{padding:10px}
+ .productList{max-height:360px}
+ .cart th,.cart td{padding:6px;font-size:10px}
+ .payment{grid-template-columns:1fr 1fr;gap:7px}
+ .field.full{grid-column:1/-1}
+}
+@media(max-width:600px){
+ .topbar{padding:8px 10px}
+ .brand b{font-size:17px}
+ .brand small{font-size:8px}
+ .topbar a{padding:7px 9px;font-size:10px}
+ main{padding:8px}
+ .head{margin-bottom:8px}
+ .head h1{font-size:20px}
+ .head p{font-size:10px}
+ .notice{padding:8px;font-size:10px}
+ .panel{padding:9px;border-radius:9px}
+ input,select,textarea{padding:7px 8px;font-size:12px}
+ .productList{max-height:300px}
+ .product{padding:7px 1px}
+ .product b{font-size:12px}
+ .cart{overflow-x:auto}
+ .cart table{min-width:720px}
+ .payment{grid-template-columns:1fr 1fr}
+ .grand{font-size:18px}
+ .history{display:none}
+}
 </style>
 </head>
 <body>
@@ -53,18 +159,18 @@
 </div>
 <div class="actions"><button class="primary" onclick="pay()">✓ PROSES PEMBAYARAN</button></div>
 </section>
-<section class="panel customerPanel">
-<div class="customerTitle"><div><h2>RINCIAN BELANJA</h2><small>LAYAR CUSTOMER</small></div><small id="customerItemCount">0 ITEM</small></div>
-<div id="customerItems" class="customerItems"></div>
-<div class="customerSummary">
-<div class="row"><span>Subtotal</span><b id="customerSubtotal">Rp0</b></div>
-<div class="row"><span>Total Diskon</span><b id="customerDiscount">- Rp0</b></div>
-<div class="customerTotal"><span>TOTAL BAYAR</span><span id="customerGrand">Rp0</span></div>
-<div class="customerPayment"><b>PEMBAYARAN:</b> <span id="customerPayment">CASH</span><br><span id="customerPaymentInfo">Silakan lakukan pembayaran.</span></div>
-</div>
-</section>
 </div>
 <section class="panel history"><h2 style="margin-top:0;font-size:17px">RIWAYAT TRANSAKSI</h2><div class="historyWrap"><table><thead><tr><th>NO STRUK</th><th>TANGGAL</th><th>STORE</th><th>GUIDE</th><th>ITEM</th><th>TOTAL</th><th>PEMBAYARAN</th><th>DISKON KHUSUS</th></tr></thead><tbody id="history"></tbody></table></div></section>
+
+<div id="receiptModal" class="receiptModal hidden">
+  <div class="receiptCard">
+    <div id="receiptContent"></div>
+    <div class="receiptActions">
+      <button class="receiptClose" onclick="closeReceipt()">SELESAI</button>
+      <button class="primary" onclick="printReceipt()">🖨 CETAK STRUK</button>
+    </div>
+  </div>
+</div>
 </main>
 <script>
 const MASTER='systemq_v17_data',GR='systemq_inventory_goods_receiving_v1',STOCK='systemq_inventory_stock_v1',MOVE='systemq_inventory_stock_movement_v1',TRX='systemq_cashier_transactions_v1';
@@ -86,10 +192,25 @@ function products(){load();let s=store(),q=norm($('search').value),rows=master.p
 window.add=bc=>{load();let s=store(),p=master.product.find(x=>txt(x.barcode)===txt(bc));if(!p)return;let i=cart.find(x=>x.barcode===bc);if(i){if(i.qty>=stock(s,p))return alert('Qty tidak boleh melebihi stok tersedia.');i.qty++}else cart.push({barcode:txt(p.barcode),sku:txt(p.sku),name:txt(p.name),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});renderCart()}
 function renderCart(){let b=$('cartBody');b.innerHTML=!cart.length?'<tr><td colspan="8" class="empty">Keranjang masih kosong.</td></tr>':cart.map((i,n)=>{let c=calc(i);return `<tr><td><b>${esc(i.name)}</b><br><small>${esc(i.sku)}</small></td><td>${rp(i.price)}</td><td>${i.productDiscount}%</td><td><input type="number" min="0" max="100" value="${i.manualDiscount}" onchange="md(${n},this.value)"></td><td><input value="${esc(i.discountReason)}" placeholder="Wajib jika diskon manual" oninput="reason(${n},this.value)"></td><td><div class="qty"><button onclick="qty(${n},-1)">−</button><b>${i.qty}</b><button onclick="qty(${n},1)">+</button></div></td><td><b>${rp(c.total)}</b></td><td><button class="danger" onclick="remove(${n})">×</button></td></tr>`}).join('');totals()}
 window.md=(n,v)=>{cart[n].manualDiscount=Math.max(0,Math.min(100,num(v)));renderCart()};window.reason=(n,v)=>cart[n].discountReason=txt(v);window.qty=(n,d)=>{cart[n].qty=Math.max(0,cart[n].qty+d);if(!cart[n].qty)cart.splice(n,1);renderCart()};window.remove=n=>{cart.splice(n,1);renderCart()};window.clearCart=()=>{if(confirm('Kosongkan seluruh keranjang?')){cart=[];renderCart()}}
-function renderCustomer(){let box=$('customerItems');if(!box)return;let method=$('payment').value;if(!cart.length){box.innerHTML='<div class="customerEmpty">Belum ada barang dalam belanja.</div>';$('customerItemCount').textContent='0 ITEM';$('customerSubtotal').textContent='Rp0';$('customerDiscount').textContent='- Rp0';$('customerGrand').textContent='Rp0';$('customerPayment').textContent=method;$('customerPaymentInfo').textContent='Silakan lakukan pembayaran.';return}let sub=0,dis=0,total=0,qty=0;cart.forEach(i=>{let x=calc(i);sub+=x.base;dis+=x.pd+x.md;total+=x.total;qty+=i.qty});box.innerHTML=cart.map(i=>{let x=calc(i),pct=i.productDiscount+i.manualDiscount;return `<div class="customerItem"><div><b>${esc(i.name)}</b><small>${i.qty} × ${rp(i.price)}</small>${pct?`<div class="customerDiscount">Diskon ${pct}%</div>`:''}</div><div class="customerItemPrice">${rp(x.total)}</div></div>`}).join('');$('customerItemCount').textContent=qty+' ITEM';$('customerSubtotal').textContent=rp(sub);$('customerDiscount').textContent='- '+rp(dis);$('customerGrand').textContent=rp(total);$('customerPayment').textContent=method;let cash=num($('cash').value);$('customerPaymentInfo').textContent=method==='CASH'?(cash>0?'Uang diterima '+rp(cash)+' • Kembalian '+rp(Math.max(0,cash-total)):'Silakan serahkan uang ke kasir.'):'Silakan selesaikan pembayaran melalui '+method+'.'}
-function totals(){let a=0,b=0,c=0,t=0;cart.forEach(i=>{let x=calc(i);a+=x.base;b+=x.pd;c+=x.md;t+=x.total});$('subtotal').textContent=rp(a);$('prodDisc').textContent='- '+rp(b);$('manualDisc').textContent='- '+rp(c);$('grand').textContent=rp(t);let cash=num($('cash').value);$('change').value=$('payment').value==='CASH'?rp(Math.max(0,cash-t)):rp(0);$('discStatus').value=cart.filter(i=>i.manualDiscount>0).length?'Ada diskon manual':'Tidak ada diskon manual';renderCustomer()}
+function totals(){let a=0,b=0,c=0,t=0;cart.forEach(i=>{let x=calc(i);a+=x.base;b+=x.pd;c+=x.md;t+=x.total});$('subtotal').textContent=rp(a);$('prodDisc').textContent='- '+rp(b);$('manualDisc').textContent='- '+rp(c);$('grand').textContent=rp(t);let cash=num($('cash').value);$('change').value=$('payment').value==='CASH'?rp(Math.max(0,cash-t)):rp(0);$('discStatus').value=cart.filter(i=>i.manualDiscount>0).length?'Ada diskon manual':'Tidak ada diskon manual'}
 function history(){load();$('history').innerHTML=!trx.length?'<tr><td colspan="7" class="empty">Belum ada transaksi kasir.</td></tr>':trx.slice(0,50).map(t=>{let sp=(t.items||[]).filter(i=>i.manualDiscount>0).map(i=>`${esc(i.name)} ${i.manualDiscount}% — ${esc(i.discountReason)}`).join('<br>');return `<tr><td><b>${esc(t.receiptNo||t.id)}</b></td><td>${esc(t.date)}</td><td>${esc(t.storeName)}</td><td>${t.guideNo?'<b>'+esc(t.guideNo)+'</b><br><small>'+esc(t.guideName||'-')+'</small>':'-'}</td><td>${t.items.length} item</td><td><b>${rp(t.grandTotal)}</b></td><td><span class="badge">${esc(t.paymentMethod)}</span></td><td>${sp||'-'}</td></tr>`}).join('')}
+function storeMaster(code){return (Array.isArray(master.store)?master.store:[]).find(x=>norm(x.code||x.storeCode||x.id)===norm(code))||{}}
+function showReceipt(t){
+ let sm=storeMaster(t.storeCode),addr=txt(sm.address||sm.alamat||sm.storeAddress),phone=txt(sm.phone||sm.telepon||sm.whatsapp);
+ let dt=new Date(t.timestamp||t.createdAt||t.date),dateText=isNaN(dt)?txt(t.date):dt.toLocaleString('id-ID');
+ let sub=0,pd=0,md=0;
+ let items=(t.items||[]).map(i=>{let base=num(i.base)||num(i.price)*num(i.qty),a=num(i.pd)||base*num(i.productDiscount)/100,b=num(i.md)||(base-a)*num(i.manualDiscount)/100,total=num(i.total)||base-a-b;sub+=base;pd+=a;md+=b;return `<div class="receiptItem"><div class="receiptItemTop"><span>${esc(i.name)}</span><span>${rp(total)}</span></div><div class="receiptItemSub"><span>${i.qty} × ${rp(i.price)}</span><span>${(i.productDiscount||i.manualDiscount)?'Diskon - '+rp(a+b):''}</span></div></div>`}).join('');
+ $('receiptContent').innerHTML=`<div class="receiptHead"><h2>${esc(t.storeName||'SYSTEMQ')}</h2>${addr?`<p>${esc(addr)}</p>`:''}${phone?`<p>${esc(phone)}</p>`:''}<p>STRUK PENJUALAN</p></div>
+ <div class="receiptMeta"><div><span>NO. STRUK</span><b>${esc(t.receiptNo||t.id)}</b></div><div><span>TANGGAL</span><span>${esc(dateText)}</span></div>${t.guideNo?`<div><span>GUIDE</span><span>${esc(t.guideNo)} • ${esc(t.guideName||'-')}</span></div>`:''}</div>
+ <div class="receiptItems">${items}</div>
+ <div class="receiptTotals"><div class="rrow"><span>Subtotal</span><b>${rp(sub)}</b></div><div class="rrow"><span>Diskon Produk</span><b>- ${rp(pd)}</b></div><div class="rrow"><span>Diskon Manual / Khusus</span><b>- ${rp(md)}</b></div><div class="rrow rgrand"><span>TOTAL BAYAR</span><span>${rp(t.grandTotal)}</span></div><div class="rrow"><span>PEMBAYARAN</span><b>${esc(t.paymentMethod)}</b></div>${t.paymentMethod==='CASH'?`<div class="rrow"><span>Uang Diterima</span><b>${rp(t.cashReceived)}</b></div><div class="rrow"><span>Kembalian</span><b>${rp(t.changeAmount)}</b></div>`:''}</div>
+ ${t.note?`<div class="receiptMeta"><b>CATATAN</b><br>${esc(t.note)}</div>`:''}
+ <div class="receiptFooter">Terima kasih telah berbelanja<br>Simpan struk ini sebagai bukti transaksi</div>`;
+ $('receiptModal').classList.remove('hidden');
+}
+function closeReceipt(){$('receiptModal').classList.add('hidden');}
+function printReceipt(){window.print();}
 function nextReceiptNo(s,now){let date=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');let prefix=(txt(s.code).trim()||'STORE').toUpperCase()+'-'+date+'-';let max=0;(Array.isArray(trx)?trx:[]).forEach(t=>{let id=txt(t.receiptNo||t.id);if(id.startsWith(prefix)){let n=parseInt(id.slice(prefix.length),10);if(n>max)max=n}});return prefix+String(max+1).padStart(4,'0')}
-window.pay=()=>{load();let s=store();if(!s.code)return alert('Store aktif belum tersedia.');if(!cart.length)return alert('Keranjang masih kosong.');for(let i of cart)if(i.manualDiscount>0&&!i.discountReason.trim())return alert('Keterangan Diskon wajib diisi untuk '+i.name+'.');let total=cart.reduce((a,i)=>a+calc(i).total,0);if($('payment').value==='CASH'&&num($('cash').value)<total)return alert('Uang diterima kurang dari total pembayaran.');if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>({...i,...calc(i)}));items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});trx.unshift({id,receiptNo:id,date:now.toISOString().slice(0,10),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,note:$('note').value,status:'PAID'});localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));alert('Pembayaran berhasil.\nNo. Struk: '+id+(guide?'\nGuide: '+guideNameOf(guide):''));cart=[];$('cash').value='';$('note').value='';render()}
+window.pay=()=>{load();let s=store();if(!s.code)return alert('Store aktif belum tersedia.');if(!cart.length)return alert('Keranjang masih kosong.');for(let i of cart)if(i.manualDiscount>0&&!i.discountReason.trim())return alert('Keterangan Diskon wajib diisi untuk '+i.name+'.');let total=cart.reduce((a,i)=>a+calc(i).total,0);if($('payment').value==='CASH'&&num($('cash').value)<total)return alert('Uang diterima kurang dari total pembayaran.');if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>({...i,...calc(i)}));items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});let received=$('payment').value==='CASH'?num($('cash').value):total,change=$('payment').value==='CASH'?Math.max(0,received-total):0,transaction={id,receiptNo:id,date:now.toISOString().slice(0,10),timestamp:now.toISOString(),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,cashReceived:received,changeAmount:change,note:$('note').value,status:'PAID'};trx.unshift(transaction);localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));cart=[];$('cash').value='';$('note').value='';$('guideNo').value='';$('guideName').textContent='Tidak ada guide dipilih';render();showReceipt(transaction)}
 function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}$('search').addEventListener('input',products);setInterval(()=>{$('clock').textContent=new Date().toLocaleString('id-ID')},1000);render();
 </script></body></html>
