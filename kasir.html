@@ -137,7 +137,7 @@ h2{font-size:16px!important}
 <div id="notice" class="notice"></div>
 <div class="layout">
 <section class="panel">
-<div class="field"><label>CARI PRODUK / SKU / BARCODE</label><input id="search" type="search" placeholder="Ketik nama, SKU, atau barcode..."></div>
+<div class="field"><label>CARI PRODUK / SKU / BARCODE</label><input id="search" type="search" placeholder="Scan barcode atau ketik nama / SKU..."><small style="display:block;margin-top:6px;color:#66727b">Scanner barcode: scan → otomatis tekan Enter → produk masuk ke keranjang.</small></div>
 <div id="productList" class="productList"></div>
 </section>
 <section class="panel">
@@ -188,6 +188,24 @@ function selectedGuide(){let no=txt($('guideNo').value).trim();if(!no)return nul
 function guideInput(){let g=selectedGuide(),name=$('guideName');if(!txt($('guideNo').value).trim()){name.textContent='Tidak ada guide dipilih';return}name.textContent=g?(guideNameOf(g)||'Nama guide belum terisi'):'No. Guide tidak ditemukan'}
 function guideKey(e){if(e.key==='Enter'){e.preventDefault();let g=selectedGuide();if(!g){alert('No. Guide tidak ditemukan di Master Guide.');return}$('guideName').textContent=guideNameOf(g)||'Nama guide belum terisi';$('guideNo').blur()}}
 function calc(i){let base=i.price*i.qty,pd=base*i.productDiscount/100,after=base-pd,md=after*i.manualDiscount/100;return {base,pd,md,total:after-md}}
+function scanProduct(){
+ load();
+ let code=txt($('search').value).trim();
+ if(!code)return;
+ let s=store();
+ if(!s.code){alert('Belum ada Store aktif.');return}
+ let p=master.product.find(x=>norm(txt(x.barcode))===norm(code)||norm(txt(x.sku))===norm(code));
+ if(!p){
+   let exact=master.product.find(x=>norm(txt(x.name))===norm(code));
+   p=exact||null;
+ }
+ if(!p){alert('Produk dengan SKU / Barcode tersebut tidak ditemukan.');return}
+ if(stock(s,p)<=0){alert('Produk ditemukan, tetapi stok di Store aktif kosong.');return}
+ window.add(txt(p.barcode));
+ $('search').value='';
+ products();
+ $('search').focus();
+}
 function products(){load();let s=store(),q=norm($('search').value),rows=master.product.filter(p=>stock(s,p)>0&&(!q||(norm(p.name)+' '+norm(p.sku)+' '+norm(p.barcode)+' '+norm(p.brand)).includes(q));$('productList').innerHTML=!s.code?'<div class="empty">Belum ada Store aktif / stok tersedia.</div>':!rows.length?'<div class="empty">Produk tidak ditemukan atau stok kosong.</div>':rows.slice(0,100).map(p=>`<div class="product"><div><b>${esc(p.name||'-')}</b><small>${esc(p.sku||'-')} • ${esc(p.barcode||'-')} • STOK: ${stock(s,p)}${disc(p)?' • DISKON '+disc(p)+'%':''}</small></div><div><div class="price">${rp(price(p))}</div><button onclick="add('${esc(p.barcode)}')">+ TAMBAH</button></div></div>`).join('')}
 window.add=bc=>{load();let s=store(),p=master.product.find(x=>txt(x.barcode)===txt(bc));if(!p)return;let i=cart.find(x=>x.barcode===bc);if(i){if(i.qty>=stock(s,p))return alert('Qty tidak boleh melebihi stok tersedia.');i.qty++}else cart.push({barcode:txt(p.barcode),sku:txt(p.sku),name:txt(p.name),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});renderCart()}
 function renderCart(){let b=$('cartBody');b.innerHTML=!cart.length?'<tr><td colspan="8" class="empty">Keranjang masih kosong.</td></tr>':cart.map((i,n)=>{let c=calc(i);return `<tr><td><b>${esc(i.name)}</b><br><small>${esc(i.sku)}</small></td><td>${rp(i.price)}</td><td>${i.productDiscount}%</td><td><input type="number" min="0" max="100" value="${i.manualDiscount}" onchange="md(${n},this.value)"></td><td><input value="${esc(i.discountReason)}" placeholder="Wajib jika diskon manual" oninput="reason(${n},this.value)"></td><td><div class="qty"><button onclick="qty(${n},-1)">−</button><b>${i.qty}</b><button onclick="qty(${n},1)">+</button></div></td><td><b>${rp(c.total)}</b></td><td><button class="danger" onclick="remove(${n})">×</button></td></tr>`}).join('');totals()}
@@ -212,5 +230,12 @@ function closeReceipt(){$('receiptModal').classList.add('hidden');}
 function printReceipt(){window.print();}
 function nextReceiptNo(s,now){let date=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');let prefix=(txt(s.code).trim()||'STORE').toUpperCase()+'-'+date+'-';let max=0;(Array.isArray(trx)?trx:[]).forEach(t=>{let id=txt(t.receiptNo||t.id);if(id.startsWith(prefix)){let n=parseInt(id.slice(prefix.length),10);if(n>max)max=n}});return prefix+String(max+1).padStart(4,'0')}
 window.pay=()=>{load();let s=store();if(!s.code)return alert('Store aktif belum tersedia.');if(!cart.length)return alert('Keranjang masih kosong.');for(let i of cart)if(i.manualDiscount>0&&!i.discountReason.trim())return alert('Keterangan Diskon wajib diisi untuk '+i.name+'.');let total=cart.reduce((a,i)=>a+calc(i).total,0);if($('payment').value==='CASH'&&num($('cash').value)<total)return alert('Uang diterima kurang dari total pembayaran.');if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>({...i,...calc(i)}));items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});let received=$('payment').value==='CASH'?num($('cash').value):total,change=$('payment').value==='CASH'?Math.max(0,received-total):0,transaction={id,receiptNo:id,date:now.toISOString().slice(0,10),timestamp:now.toISOString(),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,cashReceived:received,changeAmount:change,note:$('note').value,status:'PAID'};trx.unshift(transaction);localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));cart=[];$('cash').value='';$('note').value='';$('guideNo').value='';$('guideName').textContent='Tidak ada guide dipilih';render();showReceipt(transaction)}
-function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}$('search').addEventListener('input',products);setInterval(()=>{$('clock').textContent=new Date().toLocaleString('id-ID')},1000);render();
+function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}$('search').addEventListener('input',products);
+$('search').addEventListener('keydown',e=>{
+ if(e.key==='Enter'){
+   e.preventDefault();
+   scanProduct();
+ }
+});
+setInterval(()=>{$('clock').textContent=new Date().toLocaleString('id-ID')},1000);render();
 </script></body></html>
