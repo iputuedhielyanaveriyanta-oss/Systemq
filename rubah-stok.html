@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SYSTEMQ • Inventory • Rubah Stok</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f5f7;font-family:Arial,sans-serif;color:#1d2730}
+.topbar{background:#18212a;color:#fff;padding:14px 4%;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand b{display:block;font-size:22px}.brand small{font-size:10px;letter-spacing:1.6px;opacity:.7}
+button,a{font:inherit;font-weight:700;border:1px solid #cfd6db;background:#fff;color:#1d2730;padding:10px 13px;border-radius:9px;cursor:pointer;text-decoration:none}
+main{max-width:1050px;margin:0 auto;padding:24px}
+.pageHead h1{margin:0 0 5px;font-size:24px}.pageHead p{margin:0;color:#6d7780}
+.notice{margin:18px 0;padding:14px;border-radius:10px;background:#fff6e9;border:1px solid #efd8b1;font-size:13px;line-height:1.5}
+.panel{background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:18px;margin-bottom:16px}
+.panel h2{font-size:15px;margin:0 0 15px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.field label{display:block;font-size:11px;font-weight:800;margin-bottom:7px}
+.field.full{grid-column:1/-1}
+input,select,textarea{width:100%;font:inherit;border:1px solid #cfd6db;border-radius:9px;padding:12px;background:#fff}
+textarea{min-height:110px;resize:vertical}
+.productInfo{display:none;border:1px solid #dfe5e9;border-radius:10px;padding:14px;background:#f8fafb;margin-top:14px}
+.productInfo.show{display:block}
+.productInfo b{display:block;font-size:16px;margin-bottom:8px}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.meta div{font-size:12px}.meta span{display:block;color:#74808a;font-size:10px;font-weight:800;margin-bottom:3px}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+.primary{background:#1d2730;color:#fff;border-color:#1d2730}
+.history{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:800px}
+th,td{padding:11px;border-bottom:1px solid #edf0f2;text-align:left;font-size:12px}
+th{background:#f7f8f9;font-size:10px}
+.badge{font-weight:900}
+.empty{text-align:center;color:#75808a;padding:25px}
+@media(max-width:700px){main{padding:14px}.topbar{flex-direction:column;align-items:flex-start}.grid{grid-template-columns:1fr}.meta{grid-template-columns:1fr}.actions{flex-direction:column}.actions button{width:100%}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><b>SYSTEMQ</b><small>INVENTORY • RUBAH STOK</small></div>
+  <a href="./index.html">← INVENTORY</a>
+</header>
+
+<main>
+  <div class="pageHead">
+    <h1>RUBAH STOK</h1>
+    <p>Stock Adjustment • hanya untuk penyesuaian atau koreksi stok.</p>
+  </div>
+
+  <div class="notice">
+    <b>PERHATIAN:</b> Menu ini bukan untuk Goods Receiving atau Penjualan. Setiap perubahan wajib merupakan <b>Stock Adjustment</b> dan harus memiliki alasan serta detail keterangan yang jelas.
+  </div>
+
+  <div class="panel">
+    <h2>DATA STOCK ADJUSTMENT</h2>
+    <div class="grid">
+      <div class="field">
+        <label>TANGGAL ADJUSTMENT *</label>
+        <input id="date" type="date">
+      </div>
+      <div class="field">
+        <label>STORE *</label>
+        <input id="store" type="text" readonly>
+      </div>
+
+      <div class="field full">
+        <label>CARI BARANG (SKU / BARCODE / NAMA) *</label>
+        <input id="searchProduct" list="productList" autocomplete="off" placeholder="Ketik SKU, barcode, atau nama barang...">
+        <datalist id="productList"></datalist>
+      </div>
+
+      <div id="productInfo" class="productInfo">
+        <b id="pName">-</b>
+        <div class="meta">
+          <div><span>SKU</span><strong id="pSku">-</strong></div>
+          <div><span>BARCODE</span><strong id="pBarcode">-</strong></div>
+          <div><span>BRAND</span><strong id="pBrand">-</strong></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>JENIS ADJUSTMENT *</label>
+        <select id="direction">
+          <option value="">PILIH JENIS ADJUSTMENT</option>
+          <option value="IN">TAMBAH STOK (+)</option>
+          <option value="OUT">KURANGI STOK (−)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>QTY ADJUSTMENT *</label>
+        <input id="qty" type="number" min="1" step="1" placeholder="Contoh: 2">
+      </div>
+
+      <div class="field">
+        <label>ALASAN ADJUSTMENT *</label>
+        <select id="reason">
+          <option value="">PILIH ALASAN</option>
+          <option value="Selisih Stock Opname">Selisih Stock Opname</option>
+          <option value="Barang Rusak">Barang Rusak</option>
+          <option value="Barang Hilang">Barang Hilang</option>
+          <option value="Kesalahan Input Goods Receiving">Kesalahan Input Goods Receiving</option>
+          <option value="Koreksi Salah Posting">Koreksi Salah Posting</option>
+          <option value="Penyesuaian Stok Fisik">Penyesuaian Stok Fisik</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+
+      <div class="field full">
+        <label>DETAIL KETERANGAN WAJIB JELAS *</label>
+        <textarea id="note" placeholder="Jelaskan alasan adjustment secara spesifik. Contoh: Stock opname 1 September 2026, stok fisik ditemukan kurang 2 pcs dibanding saldo sistem."></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="resetBtn" type="button">RESET</button>
+      <button id="postBtn" class="primary" type="button">POST ADJUSTMENT</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>RIWAYAT STOCK ADJUSTMENT TERAKHIR</h2>
+    <div class="history">
+      <table>
+        <thead><tr>
+          <th>TANGGAL</th><th>SKU</th><th>NAMA BARANG</th><th>JENIS</th><th>QTY</th><th>ALASAN</th><th>DETAIL</th>
+        </tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+'use strict';
+var MASTER_KEY='systemq_v17_data';
+var GR_KEY='systemq_inventory_goods_receiving_v1';
+var STOCK_KEY='systemq_inventory_stock_v1';
+var MOVEMENT_KEY='systemq_inventory_stock_movement_v1';
+
+var master={},docs=[],stockRows=[],movements=[],selected=null;
+
+function text(v){return String(v===undefined||v===null?'':v);}
+function norm(v){return text(v).trim().toLowerCase();}
+function id(x){return document.getElementById(x);}
+function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+function load(){
+  try{master=JSON.parse(localStorage.getItem(MASTER_KEY)||'{}');}catch(e){master={};}
+  try{docs=JSON.parse(localStorage.getItem(GR_KEY)||'[]');}catch(e){docs=[];}
+  try{stockRows=JSON.parse(localStorage.getItem(STOCK_KEY)||'[]');}catch(e){stockRows=[];}
+  try{movements=JSON.parse(localStorage.getItem(MOVEMENT_KEY)||'[]');}catch(e){movements=[];}
+  if(!Array.isArray(master.product))master.product=[];
+  if(!Array.isArray(docs))docs=[];
+  if(!Array.isArray(stockRows))stockRows=[];
+  if(!Array.isArray(movements))movements=[];
+}
+
+function val(obj,names){
+  for(var i=0;i<names.length;i++){
+    var v=obj&&obj[names[i]];
+    if(text(v).trim()!=='')return text(v).trim();
+  }
+  return '';
+}
+
+function activeStore(){
+  var latest=null;
+  docs.forEach(function(d){
+    if(norm(d.status)!=='posted'||!text(d.storeCode).trim())return;
+    var t=text(d.postedAt||d.updatedAt||d.createdAt);
+    if(!latest||t>text(latest.postedAt||latest.updatedAt||latest.createdAt))latest=d;
+  });
+  if(latest)return {code:text(latest.storeCode),name:text(latest.storeName||latest.storeCode)};
+  if(stockRows.length){
+    var r=stockRows.slice().sort(function(a,b){return text(b.updatedAt).localeCompare(text(a.updatedAt));})[0];
+    return {code:text(r.storeCode),name:text(r.storeName||r.storeCode)};
+  }
+  return {code:'',name:''};
+}
+
+function productName(p){return val(p,['name','productName','nama','itemName']);}
+function productSku(p){return val(p,['sku','SKU']);}
+function productBarcode(p){return val(p,['barcode','barCode','ean']);}
+function productBrand(p){return val(p,['brand','brandName']);}
+
+function populateProducts(){
+  var list=id('productList');list.innerHTML='';
+  master.product.forEach(function(p){
+    var label=[productSku(p),productBarcode(p),productName(p)].filter(Boolean).join(' • ');
+    if(!label)return;
+    var o=document.createElement('option');o.value=label;list.appendChild(o);
+  });
+}
+
+function findProduct(query){
+  var q=norm(query);
+  if(!q)return null;
+  for(var i=0;i<master.product.length;i++){
+    var p=master.product[i];
+    var sku=norm(productSku(p)),bc=norm(productBarcode(p)),name=norm(productName(p));
+    var label=norm([productSku(p),productBarcode(p),productName(p)].filter(Boolean).join(' • '));
+    if(q===sku||q===bc||q===label||q===name||sku.indexOf(q)>=0||bc.indexOf(q)>=0||name.indexOf(q)>=0)return p;
+  }
+  return null;
+}
+
+function selectProduct(){
+  selected=findProduct(id('searchProduct').value);
+  var box=id('productInfo');
+  if(!selected){box.classList.remove('show');return;}
+  id('pName').textContent=productName(selected)||'-';
+  id('pSku').textContent=productSku(selected)||'-';
+  id('pBarcode').textContent=productBarcode(selected)||'-';
+  id('pBrand').textContent=productBrand(selected)||'-';
+  box.classList.add('show');
+}
+
+function currentStock(storeCode,p){
+  var sku=productSku(p),bc=productBarcode(p);
+  var row=stockRows.find(function(r){
+    return text(r.storeCode)===storeCode && ((sku&&text(r.sku)===sku)||(bc&&text(r.barcode)===bc));
+  });
+  if(row)return Number(row.qty||row.stock||row.balance||0)||0;
+
+  var bal=0;
+  movements.forEach(function(m){
+    if(text(m.storeCode)!==storeCode)return;
+    if((sku&&text(m.sku)===sku)||(bc&&text(m.barcode)===bc)){
+      bal+=(Number(m.qtyIn)||0)-(Number(m.qtyOut)||0);
+    }
+  });
+  return bal;
+}
+
+function adjustmentId(){
+  return 'ADJ-'+new Date().toISOString().replace(/\D/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
+}
+
+function post(){
+  load();selectProduct();
+  var store=activeStore();
+  var date=id('date').value,direction=id('direction').value,qty=Number(id('qty').value),reason=id('reason').value,note=text(id('note').value).trim();
+
+  if(!store.code){alert('Store aktif belum ditemukan. Pastikan sudah ada Goods Receiving yang di-POSTING.');return;}
+  if(!date){alert('Tanggal Adjustment wajib diisi.');return;}
+  if(!selected){alert('Pilih barang yang valid terlebih dahulu.');return;}
+  if(direction!=='IN'&&direction!=='OUT'){alert('Pilih jenis adjustment.');return;}
+  if(!Number.isInteger(qty)||qty<=0){alert('Qty Adjustment harus berupa angka minimal 1.');return;}
+  if(!reason){alert('Alasan Adjustment wajib dipilih.');return;}
+  if(note.length<10){alert('Detail keterangan wajib jelas. Masukkan penjelasan yang lebih lengkap.');return;}
+
+  var before=currentStock(store.code,selected);
+  if(direction==='OUT'&&qty>before){
+    alert('Adjustment OUT tidak dapat melebihi stok saat ini ('+before+' pcs).');
+    return;
+  }
+
+  var now=new Date().toISOString();
+  var movement={
+    id:adjustmentId(),
+    date:date,
+    timestamp:now,
+    createdAt:now,
+    storeCode:store.code,
+    storeName:store.name,
+    type:'STOCK ADJUSTMENT',
+    adjustmentDirection:direction,
+    referenceNo:'',
+    barcode:productBarcode(selected),
+    sku:productSku(selected),
+    qtyIn:direction==='IN'?qty:0,
+    qtyOut:direction==='OUT'?qty:0,
+    reason:reason,
+    note:'['+reason+'] '+note
+  };
+  movements.push(movement);
+  localStorage.setItem(MOVEMENT_KEY,JSON.stringify(movements));
+
+  var existing=stockRows.find(function(r){
+    return text(r.storeCode)===store.code && ((productSku(selected)&&text(r.sku)===productSku(selected))||(productBarcode(selected)&&text(r.barcode)===productBarcode(selected)));
+  });
+  var after=before+(direction==='IN'?qty:-qty);
+  if(existing){
+    if('qty' in existing || !('stock' in existing))existing.qty=after;
+    if('stock' in existing)existing.stock=after;
+    if('balance' in existing)existing.balance=after;
+    existing.updatedAt=now;
+  }else{
+    stockRows.push({
+      storeCode:store.code,storeName:store.name,
+      barcode:productBarcode(selected),sku:productSku(selected),
+      qty:after,updatedAt:now
+    });
+  }
+  localStorage.setItem(STOCK_KEY,JSON.stringify(stockRows));
+
+  alert('Stock Adjustment berhasil di-POSTING. Saldo stok dan Kartu Stok telah diperbarui.');
+  resetForm(false);
+  renderHistory();
+}
+
+function resetForm(ask){
+  if(ask&& !confirm('Reset data Adjustment yang sedang diisi?'))return;
+  selected=null;
+  id('searchProduct').value='';
+  id('direction').value='';
+  id('qty').value='';
+  id('reason').value='';
+  id('note').value='';
+  id('productInfo').classList.remove('show');
+}
+
+function renderHistory(){
+  load();
+  var store=activeStore();
+  var rows=movements.filter(function(m){
+    return text(m.storeCode)===store.code && norm(m.type)==='stock adjustment';
+  }).sort(function(a,b){return text(b.timestamp||b.createdAt).localeCompare(text(a.timestamp||a.createdAt));}).slice(0,20);
+
+  var body=id('historyBody');
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="7" class="empty">Belum ada Stock Adjustment.</td></tr>';
+    return;
+  }
+  body.innerHTML=rows.map(function(m){
+    var p=master.product.find(function(x){return text(x.sku)===text(m.sku)||text(x.barcode)===text(m.barcode);})||{};
+    var dir=(Number(m.qtyIn)||0)>0?'TAMBAH (+)':'KURANGI (−)';
+    var qty=(Number(m.qtyIn)||0)||(Number(m.qtyOut)||0);
+    var note=text(m.note).replace(/^\[[^\]]+\]\s*/,'');
+    return '<tr>'+
+      '<td>'+esc(text(m.date))+'</td>'+
+      '<td>'+esc(text(m.sku||'-'))+'</td>'+
+      '<td>'+esc(productName(p)||'-')+'</td>'+
+      '<td class="badge">'+esc(dir)+'</td>'+
+      '<td>'+qty+'</td>'+
+      '<td>'+esc(text(m.reason||'-'))+'</td>'+
+      '<td>'+esc(note)+'</td>'+
+    '</tr>';
+  }).join('');
+}
+
+function init(){
+  load();
+  id('date').value=new Date().toISOString().slice(0,10);
+  var store=activeStore();
+  id('store').value=store.code?(store.name+' ('+store.code+')'):'STORE BELUM DITEMUKAN';
+  populateProducts();
+  renderHistory();
+  id('searchProduct').addEventListener('input',selectProduct);
+  id('searchProduct').addEventListener('change',selectProduct);
+  id('postBtn').addEventListener('click',post);
+  id('resetBtn').addEventListener('click',function(){resetForm(true);});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</body>
+</html>
