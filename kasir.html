@@ -183,12 +183,8 @@ const $=id=>document.getElementById(id),txt=v=>String(v??''),norm=v=>txt(v).trim
 function load(){try{master=JSON.parse(localStorage.getItem(MASTER)||'{}')}catch(e){master={}}try{docs=JSON.parse(localStorage.getItem(GR)||'[]')}catch(e){docs=[]}try{stocks=JSON.parse(localStorage.getItem(STOCK)||'[]')}catch(e){stocks=[]}try{moves=JSON.parse(localStorage.getItem(MOVE)||'[]')}catch(e){moves=[]}try{trx=JSON.parse(localStorage.getItem(TRX)||'[]')}catch(e){trx=[]}if(!Array.isArray(master.product))master.product=[]}
 function store(){let x=null;docs.forEach(d=>{if(norm(d.status)!=='posted'||!txt(d.storeCode).trim())return;let t=txt(d.postedAt||d.updatedAt||d.createdAt);if(!x||t>txt(x.postedAt||x.updatedAt||x.createdAt))x=d});if(x)return {code:txt(x.storeCode),name:txt(x.storeName||x.storeCode)};if(stocks.length){let r=stocks.slice().sort((a,b)=>txt(b.updatedAt).localeCompare(txt(a.updatedAt)))[0];return {code:txt(r.storeCode),name:txt(r.storeName||r.storeCode)}}return {code:'',name:''}}
 function stock(s,p){
- let sku=skuOf(p),bc=barcodeOf(p),r=stocks.find(x=>{
-   if(txt(x.storeCode)!==txt(s.code))return false;
-   let xs=txt(x.sku).trim(),xb=txt(x.barcode).trim();
-   return (sku&&sameCode(xs,sku))||(bc&&sameCode(xb,bc));
- });
- if(!r){let key=s.code+'|'+(sku||bc);r=stocks.find(x=>txt(x.key)===key)}
+ let sku=skuOf(p),bc=barcodeOf(p),keys=[s.code+'|'+sku,s.code+'|'+bc];
+ let r=stocks.find(x=>txt(x.storeCode).trim()===txt(s.code).trim()&&(sameCode(x.sku,sku)||sameCode(x.barcode,bc)))||stocks.find(x=>keys.includes(txt(x.key)));
  return r?Number(r.qtyOnHand)||0:0
 }
 function price(p){return num(p.price||p.sellingPrice||p.harga||p.salePrice||p.retailPrice)}
@@ -209,17 +205,12 @@ function calc(i){let base=i.price*i.qty,pd=base*i.productDiscount/100,after=base
 function addProduct(p){
  load();
  let s=store();
- if(!p){alert('Produk tidak ditemukan.');return false}
- if(!s.code){alert('Store aktif belum tersedia.');return false}
+ if(!p)return false;
  let available=stock(s,p);
  if(available<=0){alert('Produk ditemukan, tetapi stok di Store aktif kosong.');return false}
  let bc=barcodeOf(p),sku=skuOf(p),key=sku||bc||txt(p.id||p.name),i=cart.find(x=>x.productKey===key);
- if(i){
-   if(i.qty>=available){alert('Qty tidak boleh melebihi stok tersedia.');return false}
-   i.qty++;
- }else{
-   cart.push({productKey:key,barcode:bc,sku:sku,name:txt(p.name||p.productName||p.nama||'Produk'),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});
- }
+ if(i){if(i.qty>=available){alert('Qty tidak boleh melebihi stok tersedia.');return false}i.qty++}
+ else cart.push({productKey:key,barcode:bc,sku:sku,name:txt(p.name||p.productName||p.nama),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});
  renderCart();
  return true;
 }
@@ -231,6 +222,7 @@ function scanProduct(){
  if(!s.code){alert('Belum ada Store aktif / stok belum tersedia.');return}
  let p=findProduct(code);
  if(!p){alert('Produk dengan SKU / Barcode '+code+' tidak ditemukan di Master Barang.');return}
+ // Produk ditemukan: tetap lanjutkan, stok akan divalidasi dari data stok store yang kompatibel.
  if(addProduct(p)){$('search').value='';products();$('search').focus()}
 }
 function products(){load();let s=store(),q=norm($('search').value),rows=master.product.filter(p=>stock(s,p)>0&&(!q||(norm(txt(p.name||p.productName||p.nama))+' '+norm(skuOf(p))+' '+norm(barcodeOf(p))+' '+norm(p.brand)).includes(q));$('productList').innerHTML=!s.code?'<div class="empty">Belum ada Store aktif / stok tersedia.</div>':!rows.length?'<div class="empty">Produk tidak ditemukan atau stok kosong.</div>':rows.slice(0,100).map((p,n)=>`<div class="product"><div><b>${esc(p.name||p.productName||p.nama||'-')}</b><small>${esc(skuOf(p)||'-')} • ${esc(barcodeOf(p)||'-')} • STOK: ${stock(s,p)}${disc(p)?' • DISKON '+disc(p)+'%':''}</small></div><div><div class="price">${rp(price(p))}</div><button type="button" onclick="addByIndex(${n})">+ TAMBAH</button></div></div>`).join('');window.__visibleProducts=rows.slice(0,100)}
@@ -258,39 +250,23 @@ function closeReceipt(){$('receiptModal').classList.add('hidden');}
 function printReceipt(){window.print();}
 function nextReceiptNo(s,now){let date=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');let prefix=(txt(s.code).trim()||'STORE').toUpperCase()+'-'+date+'-';let max=0;(Array.isArray(trx)?trx:[]).forEach(t=>{let id=txt(t.receiptNo||t.id);if(id.startsWith(prefix)){let n=parseInt(id.slice(prefix.length),10);if(n>max)max=n}});return prefix+String(max+1).padStart(4,'0')}
 window.pay=()=>{load();let s=store();if(!s.code)return alert('Store aktif belum tersedia.');if(!cart.length)return alert('Keranjang masih kosong.');for(let i of cart)if(i.manualDiscount>0&&!i.discountReason.trim())return alert('Keterangan Diskon wajib diisi untuk '+i.name+'.');let total=cart.reduce((a,i)=>a+calc(i).total,0);if($('payment').value==='CASH'&&num($('cash').value)<total)return alert('Uang diterima kurang dari total pembayaran.');if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>({...i,...calc(i)}));items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});let received=$('payment').value==='CASH'?num($('cash').value):total,change=$('payment').value==='CASH'?Math.max(0,received-total):0,transaction={id,receiptNo:id,date:now.toISOString().slice(0,10),timestamp:now.toISOString(),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,cashReceived:received,changeAmount:change,note:$('note').value,status:'PAID'};trx.unshift(transaction);localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));cart=[];$('cash').value='';$('note').value='';$('guideNo').value='';$('guideName').textContent='Tidak ada guide dipilih';render();showReceipt(transaction)}
-function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}let scanTimer=null,scanBusy=false,lastScanCode='',lastScanAt=0;
-function runScan(){
- let code=txt($('search').value).trim();
- if(!code){$('search').focus();return false}
- let now=Date.now();
- if(scanBusy)return false;
- /* Cegah satu barcode masuk dua kali karena scanner bisa mengirim Enter + change/search bersamaan. */
- if(code===lastScanCode && now-lastScanAt<120)return false;
- scanBusy=true;
- try{scanProduct();lastScanCode=code;lastScanAt=Date.now();return true}
- finally{setTimeout(()=>{scanBusy=false},0)}
-}
-function autoScanExact(){
- clearTimeout(scanTimer);
- scanTimer=setTimeout(()=>{
-   let code=txt($('search').value).trim();
-   if(!code)return;
-   load();
-   let exact=findProduct(code);
-   if(exact)runScan();
- },180)
-}
+function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}let scanTimer=null;
+function autoScanExact(){clearTimeout(scanTimer);scanTimer=setTimeout(()=>{let code=txt($('search').value).trim();if(!code)return;load();let exact=findProduct(code);if(exact)scanProduct()},180)}
 $('search').addEventListener('input',()=>{products();autoScanExact()});
-/* Barcode scanner umumnya mengirim Enter. Tangani beberapa bentuk event untuk keyboard/scanner desktop & HP. */
-$('search').addEventListener('keydown',e=>{
- if(e.key==='Enter'||e.keyCode===13||e.which===13||e.key==='Go'||e.key==='Done'){
-   e.preventDefault();e.stopPropagation();runScan();
+function forceScan(e){
+ let k=e&&((e.key||'')+' '+(e.code||'')).toLowerCase();
+ let kc=e&&Number(e.keyCode||e.which||0);
+ if(k.includes('enter')||k.includes('numpadenter')||k.includes('go')||k.includes('done')||kc===13){
+  if(e){e.preventDefault();e.stopPropagation();}
+  scanProduct();
+  return false;
  }
-});
-$('search').addEventListener('keypress',e=>{
- if(e.key==='Enter'||e.keyCode===13||e.which===13){e.preventDefault();e.stopPropagation();runScan();}
-});
-$('search').addEventListener('search',e=>{e.preventDefault&&e.preventDefault();runScan()});
-$('search').addEventListener('change',()=>{if(txt($('search').value).trim())runScan()});
+}
+$('search').addEventListener('keydown',forceScan,true);
+$('search').addEventListener('keypress',forceScan,true);
+$('search').addEventListener('keyup',forceScan,true);
+$('search').addEventListener('search',scanProduct);
+$('search').addEventListener('change',()=>{if(txt($('search').value).trim())scanProduct()});
+document.addEventListener('keydown',e=>{if(document.activeElement===$('search'))forceScan(e)},true);
 setInterval(()=>{$('clock').textContent=new Date().toLocaleString('id-ID')},1000);render();
 </script></body></html>
