@@ -182,7 +182,15 @@ let master={},docs=[],stocks=[],moves=[],trx=[],cart=[];
 const $=id=>document.getElementById(id),txt=v=>String(v??''),norm=v=>txt(v).trim().toLowerCase(),num=v=>{let n=Number(txt(v).replace(/[^0-9.-]/g,''));return isFinite(n)?n:0},rp=v=>'Rp'+Math.round(v||0).toLocaleString('id-ID'),esc=v=>txt(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function load(){try{master=JSON.parse(localStorage.getItem(MASTER)||'{}')}catch(e){master={}}try{docs=JSON.parse(localStorage.getItem(GR)||'[]')}catch(e){docs=[]}try{stocks=JSON.parse(localStorage.getItem(STOCK)||'[]')}catch(e){stocks=[]}try{moves=JSON.parse(localStorage.getItem(MOVE)||'[]')}catch(e){moves=[]}try{trx=JSON.parse(localStorage.getItem(TRX)||'[]')}catch(e){trx=[]}if(!Array.isArray(master.product))master.product=[]}
 function store(){let x=null;docs.forEach(d=>{if(norm(d.status)!=='posted'||!txt(d.storeCode).trim())return;let t=txt(d.postedAt||d.updatedAt||d.createdAt);if(!x||t>txt(x.postedAt||x.updatedAt||x.createdAt))x=d});if(x)return {code:txt(x.storeCode),name:txt(x.storeName||x.storeCode)};if(stocks.length){let r=stocks.slice().sort((a,b)=>txt(b.updatedAt).localeCompare(txt(a.updatedAt)))[0];return {code:txt(r.storeCode),name:txt(r.storeName||r.storeCode)}}return {code:'',name:''}}
-function stock(s,p){let key=s.code+'|'+(txt(p.sku).trim()||txt(p.barcode).trim()),r=stocks.find(x=>txt(x.key)===key);return r?Number(r.qtyOnHand)||0:0}
+function stock(s,p){
+ let sku=skuOf(p),bc=barcodeOf(p),r=stocks.find(x=>{
+   if(txt(x.storeCode)!==txt(s.code))return false;
+   let xs=txt(x.sku).trim(),xb=txt(x.barcode).trim();
+   return (sku&&sameCode(xs,sku))||(bc&&sameCode(xb,bc));
+ });
+ if(!r){let key=s.code+'|'+(sku||bc);r=stocks.find(x=>txt(x.key)===key)}
+ return r?Number(r.qtyOnHand)||0:0
+}
 function price(p){return num(p.price||p.sellingPrice||p.harga||p.salePrice||p.retailPrice)}
 function disc(p){return Math.max(0,Math.min(100,num(p.discount||p.diskon||p.discountPercent)))}
 function barcodeOf(p){return txt(p.barcode||p.barCode||p.barcodeNumber||p.ean||p.upc||p.code||'').trim()}
@@ -201,12 +209,17 @@ function calc(i){let base=i.price*i.qty,pd=base*i.productDiscount/100,after=base
 function addProduct(p){
  load();
  let s=store();
- if(!p)return false;
+ if(!p){alert('Produk tidak ditemukan.');return false}
+ if(!s.code){alert('Store aktif belum tersedia.');return false}
  let available=stock(s,p);
  if(available<=0){alert('Produk ditemukan, tetapi stok di Store aktif kosong.');return false}
  let bc=barcodeOf(p),sku=skuOf(p),key=sku||bc||txt(p.id||p.name),i=cart.find(x=>x.productKey===key);
- if(i){if(i.qty>=available){alert('Qty tidak boleh melebihi stok tersedia.');return false}i.qty++}
- else cart.push({productKey:key,barcode:bc,sku:sku,name:txt(p.name||p.productName||p.nama),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});
+ if(i){
+   if(i.qty>=available){alert('Qty tidak boleh melebihi stok tersedia.');return false}
+   i.qty++;
+ }else{
+   cart.push({productKey:key,barcode:bc,sku:sku,name:txt(p.name||p.productName||p.nama||'Produk'),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});
+ }
  renderCart();
  return true;
 }
