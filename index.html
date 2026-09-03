@@ -12,4 +12,109 @@
 <section id="inventory" class="hidden"><h1>INVENTORY</h1><p>Pilih proses Inventory yang ingin digunakan.</p><div class="inventory-menu"><a class="inventory-card" href="./inventory.html"><b>GOODS RECEIVING</b><span>Penerimaan barang, Import PL, input manual, Scan dan Posting stok.</span></a><a class="inventory-card" href="./saldo-stok.html"><b>SALDO STOK</b><span>Lihat saldo stok store aktif dengan filter Brand dan Diskon.</span></a><a class="inventory-card" href="./rubah-stok.html"><b>RUBAH STOK</b><span>Stock adjustment untuk penambahan atau pengurangan stok.</span></a><a class="inventory-card" href="./kartu-stok.html"><b>KARTU STOK</b><span>Riwayat seluruh pergerakan stok per barang dengan saldo berjalan otomatis.</span></a></div></section>
 <section id="cashier" class="hidden"><h1>KASIR</h1><p>Pilih proses kasir yang ingin digunakan.</p><div class="cashier-menu"><a class="cashier-card" href="./kasir.html"><b>POINT OF SALE / KASIR</b><span>Penjualan, diskon manual dengan keterangan wajib, pembayaran, pengurangan stok otomatis dan riwayat transaksi.</span></a></div></section>
 <section id="report" class="hidden"><h1>LAPORAN</h1><div class="box">Modul laporan akan dibangun setelah Inventory.</div></section><section id="finance" class="hidden"><h1>FINANCE & AKUNTING</h1><div class="box">Akses nanti menggunakan kode rahasia.</div></section>
-</main><div id="modal" class="modal hidden"><div class="card"><button class="close" onclick="closeModal()">×</button><h2 id="modalTitle"></h2><form id="form" onsubmit="save(event)"></form></div></div><script>function inventoryComingSoon(name){alert(name+" akan kita kerjakan setelah modul Saldo Stok selesai.");}</script><script src="app.js"></script></body></html>
+</main><div id="modal" class="modal hidden"><div class="card"><button class="close" onclick="closeModal()">×</button><h2 id="modalTitle"></h2><form id="form" onsubmit="save(event)"></form></div></div><script>function inventoryComingSoon(name){alert(name+" akan kita kerjakan setelah modul Saldo Stok selesai.");}</script><script src="app.js"></script>
+<!-- SYSTEMQ CLOUD LIVE SYNC -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+'use strict';
+var SYSTEMQ_SUPABASE_URL='https://jyqheupnegdrdbtpojhl.supabase.co';
+var SYSTEMQ_SUPABASE_KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
+var SYSTEMQ_KEYS=[
+ 'systemq_v17_data',
+ 'systemq_inventory_goods_receiving_v1',
+ 'systemq_inventory_stock_v1',
+ 'systemq_inventory_stock_movement_v1',
+ 'systemq_cashier_sales_v1'
+];
+var sb=null, ready=false, applying=false, timer=null;
+
+function snapshot(){
+  var data={};
+  SYSTEMQ_KEYS.forEach(function(k){
+    var v=localStorage.getItem(k);
+    if(v!==null)data[k]=v;
+  });
+  return data;
+}
+function apply(payload){
+  if(!payload || typeof payload!=='object')return;
+  applying=true;
+  SYSTEMQ_KEYS.forEach(function(k){
+    if(Object.prototype.hasOwnProperty.call(payload,k)){
+      localStorage.setItem(k,String(payload[k]));
+    }else{
+      localStorage.removeItem(k);
+    }
+  });
+  applying=false;
+}
+async function pull(){
+  if(!sb)return false;
+  var r=await sb.from('systemq_sync').select('payload').eq('sync_key','global').maybeSingle();
+  if(r.error)throw r.error;
+  if(r.data && r.data.payload){
+    apply(r.data.payload);
+    return true;
+  }
+  return false;
+}
+async function push(){
+  if(!sb || applying)return;
+  var payload=snapshot();
+  var r=await sb.from('systemq_sync').upsert(
+    {sync_key:'global',payload:payload,updated_at:new Date().toISOString()},
+    {onConflict:'sync_key'}
+  );
+  if(r.error)console.warn('SYSTEMQ cloud sync:',r.error.message);
+}
+function queuePush(){
+  if(applying)return;
+  clearTimeout(timer);
+  timer=setTimeout(function(){push().catch(function(e){console.warn(e);});},350);
+}
+async function boot(){
+  if(!window.supabase || !window.supabase.createClient)return;
+  sb=window.supabase.createClient(SYSTEMQ_SUPABASE_URL,SYSTEMQ_SUPABASE_KEY);
+  try{
+    var hasCloud=await pull();
+    if(!hasCloud)await push();
+    ready=true;
+    var originalSet=localStorage.setItem.bind(localStorage);
+    var originalRemove=localStorage.removeItem.bind(localStorage);
+    localStorage.setItem=function(k,v){
+      originalSet(k,v);
+      if(SYSTEMQ_KEYS.indexOf(k)!==-1)queuePush();
+    };
+    localStorage.removeItem=function(k){
+      originalRemove(k);
+      if(SYSTEMQ_KEYS.indexOf(k)!==-1)queuePush();
+    };
+    sb.channel('systemq-live-sync')
+      .on('postgres_changes',{event:'*',schema:'public',table:'systemq_sync',filter:'sync_key=eq.global'},function(payload){
+        if(!ready)return;
+        var row=payload.new && payload.new.payload ? payload.new : payload.old;
+        if(row && row.payload){
+          apply(row.payload);
+          window.dispatchEvent(new Event('systemq-cloud-sync'));
+        }
+      }).subscribe();
+    window.dispatchEvent(new Event('systemq-cloud-ready'));
+  }catch(e){
+    console.warn('SYSTEMQ berjalan offline/local:',e && e.message ? e.message : e);
+  }
+}
+boot();
+})();
+</script>
+
+<script>
+window.addEventListener('systemq-cloud-sync',function(){
+  if(!window.__systemqCloudReloading){
+    window.__systemqCloudReloading=true;
+    setTimeout(function(){location.reload();},120);
+  }
+});
+</script>
+
+</body></html>

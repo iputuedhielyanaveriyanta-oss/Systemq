@@ -328,5 +328,116 @@ function init(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+
+<!-- SYSTEMQ CLOUD LIVE SYNC -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+'use strict';
+var SYSTEMQ_SUPABASE_URL='https://jyqheupnegdrdbtpojhl.supabase.co';
+var SYSTEMQ_SUPABASE_KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
+var SYSTEMQ_KEYS=[
+ 'systemq_v17_data',
+ 'systemq_inventory_goods_receiving_v1',
+ 'systemq_inventory_stock_v1',
+ 'systemq_inventory_stock_movement_v1',
+ 'systemq_cashier_sales_v1'
+];
+var sb=null, ready=false, applying=false, timer=null;
+
+function snapshot(){
+  var data={};
+  SYSTEMQ_KEYS.forEach(function(k){
+    var v=localStorage.getItem(k);
+    if(v!==null)data[k]=v;
+  });
+  return data;
+}
+function apply(payload){
+  if(!payload || typeof payload!=='object')return;
+  applying=true;
+  SYSTEMQ_KEYS.forEach(function(k){
+    if(Object.prototype.hasOwnProperty.call(payload,k)){
+      localStorage.setItem(k,String(payload[k]));
+    }else{
+      localStorage.removeItem(k);
+    }
+  });
+  applying=false;
+}
+async function pull(){
+  if(!sb)return false;
+  var r=await sb.from('systemq_sync').select('payload').eq('sync_key','global').maybeSingle();
+  if(r.error)throw r.error;
+  if(r.data && r.data.payload){
+    apply(r.data.payload);
+    return true;
+  }
+  return false;
+}
+async function push(){
+  if(!sb || applying)return;
+  var payload=snapshot();
+  var r=await sb.from('systemq_sync').upsert(
+    {sync_key:'global',payload:payload,updated_at:new Date().toISOString()},
+    {onConflict:'sync_key'}
+  );
+  if(r.error)console.warn('SYSTEMQ cloud sync:',r.error.message);
+}
+function queuePush(){
+  if(applying)return;
+  clearTimeout(timer);
+  timer=setTimeout(function(){push().catch(function(e){console.warn(e);});},350);
+}
+async function boot(){
+  if(!window.supabase || !window.supabase.createClient)return;
+  sb=window.supabase.createClient(SYSTEMQ_SUPABASE_URL,SYSTEMQ_SUPABASE_KEY);
+  try{
+    var hasCloud=await pull();
+    if(!hasCloud){
+      await push();
+    }else if(sessionStorage.getItem('systemq_cloud_boot')!=='1'){
+      sessionStorage.setItem('systemq_cloud_boot','1');
+      location.reload();
+      return;
+    }
+    ready=true;
+    var originalSet=localStorage.setItem.bind(localStorage);
+    var originalRemove=localStorage.removeItem.bind(localStorage);
+    localStorage.setItem=function(k,v){
+      originalSet(k,v);
+      if(SYSTEMQ_KEYS.indexOf(k)!==-1)queuePush();
+    };
+    localStorage.removeItem=function(k){
+      originalRemove(k);
+      if(SYSTEMQ_KEYS.indexOf(k)!==-1)queuePush();
+    };
+    sb.channel('systemq-live-sync')
+      .on('postgres_changes',{event:'*',schema:'public',table:'systemq_sync',filter:'sync_key=eq.global'},function(payload){
+        if(!ready)return;
+        var row=payload.new && payload.new.payload ? payload.new : payload.old;
+        if(row && row.payload){
+          apply(row.payload);
+          window.dispatchEvent(new Event('systemq-cloud-sync'));
+        }
+      }).subscribe();
+    window.dispatchEvent(new Event('systemq-cloud-ready'));
+  }catch(e){
+    console.warn('SYSTEMQ berjalan offline/local:',e && e.message ? e.message : e);
+  }
+}
+boot();
+})();
+</script>
+
+<script>
+window.addEventListener('systemq-cloud-sync',function(){
+  if(!window.__systemqCloudReloading){
+    window.__systemqCloudReloading=true;
+    setTimeout(function(){location.reload();},120);
+  }
+});
+</script>
+
 </body>
 </html>
