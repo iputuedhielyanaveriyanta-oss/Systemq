@@ -250,12 +250,16 @@ function sameCode(a,b){
 function findProduct(code){
  let q=txt(code).trim();
  if(!q)return null;
- // SKU dan barcode diperiksa secara terpisah agar SKU berbeda tidak
- // tertukar menjadi produk pertama yang kebetulan memiliki field kosong.
- let bySku=master.product.find(p=>sameCode(skuOf(p),q));
- if(bySku)return bySku;
+
+ // Scanner kasir diprioritaskan membaca BARCODE exact terlebih dahulu.
+ // Barcode berbeda harus menemukan item/baris produk yang berbeda.
  let byBarcode=master.product.find(p=>sameCode(barcodeOf(p),q));
  if(byBarcode)return byBarcode;
+
+ // Jika bukan barcode, baru cari SKU exact.
+ let bySku=master.product.find(p=>sameCode(skuOf(p),q));
+ if(bySku)return bySku;
+
  return master.product.find(p=>norm(txt(p.name||p.productName||p.nama))===norm(q))||null
 }
 function guides(){return Array.isArray(master.guide)?master.guide:[]}
@@ -273,13 +277,17 @@ function addProduct(p){
  let available=stock(s,p);
  if(available<=0){alert('Produk ditemukan, tetapi stok di Store aktif kosong.');return false}
  let bc=barcodeOf(p),sku=skuOf(p);
- // SKU berbeda = item keranjang berbeda. Jika SKU kosong gunakan ID/barcode/nama
- // sebagai identitas cadangan, tanpa menyatukan produk yang berbeda.
- let pid=txt(p.id||p.productId||p.uuid||'').trim();
- let key=pid
-   ? 'ID:'+pid
-   : (sku ? 'SKU:'+codeNorm(sku)
-      : (bc ? 'BARCODE:'+codeNorm(bc)
+
+ // PENTING:
+ // Untuk POS, BARCODE/SKU adalah identitas item transaksi.
+ // Jangan memakai product ID sebagai prioritas karena beberapa varian/SKU dapat
+ // memiliki parent/product ID yang sama. Barcode berbeda WAJIB menjadi baris berbeda.
+ let key=bc
+   ? 'BARCODE:'+codeNorm(bc)
+   : (sku
+      ? 'SKU:'+codeNorm(sku)
+      : (txt(p.id||p.productId||p.uuid||'').trim()
+         ? 'ID:'+txt(p.id||p.productId||p.uuid||'').trim()
          : 'NAME:'+norm(txt(p.name||p.productName||p.nama))+'|PRICE:'+price(p)));
  let i=cart.find(x=>x.productKey===key);
  if(i){if(i.qty>=available){alert('Qty tidak boleh melebihi stok tersedia.');return false}i.qty++}
