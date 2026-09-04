@@ -95,6 +95,13 @@ input,select,textarea{padding:8px 9px;font-size:13px}
 .actions{margin-top:10px}
 .actions button{padding:9px 12px;font-size:12px}
 .history{margin-top:12px}
+.historyTools{display:flex;gap:10px;align-items:center;margin:0 0 10px}
+.historyTools input{flex:1;min-width:0}
+.historyHint{font-size:10px;color:#6d7780;margin-top:6px}
+.historyRow{cursor:pointer}
+.historyRow:hover td{background:#f7f9fa}
+.historyDetailBtn{padding:6px 9px;font-size:10px;white-space:nowrap}
+
 h2{font-size:16px!important}
 @media(max-width:900px){
  body{font-size:13px}
@@ -155,8 +162,29 @@ h2{font-size:16px!important}
 <datalist id="guideList"></datalist>
 <small id="guideName" style="display:block;margin-top:7px;font-weight:800;color:#1d2730">Tidak ada guide dipilih</small>
 </div>
-<div class="field"><label>METODE PEMBAYARAN *</label><select id="payment" onchange="totals()"><option>CASH</option><option>QRIS</option><option>DEBIT / CREDIT CARD</option><option>TRANSFER</option></select></div>
+<div class="field"><label>METODE PEMBAYARAN *</label><select id="payment" onchange="paymentFields();totals()"><option>CASH</option><option>QRIS</option><option>DEBIT / CREDIT CARD</option><option>TRANSFER</option></select></div>
 <div class="field"><label>UANG DITERIMA</label><input id="cash" inputmode="numeric" placeholder="0" oninput="totals()"></div>
+<div id="cardFields" class="field full" style="display:none">
+  <label>DETAIL KARTU *</label>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <select id="cardType">
+      <option value="">Pilih jenis kartu</option>
+      <option>DEBIT</option>
+      <option>CREDIT CARD</option>
+    </select>
+    <select id="cardBrand">
+      <option value="">Pilih brand kartu</option>
+      <option>VISA</option>
+      <option>MASTERCARD</option>
+      <option>JCB</option>
+      <option>AMERICAN EXPRESS</option>
+      <option>UNIONPAY</option>
+      <option>LAINNYA</option>
+    </select>
+  </div>
+  <input id="cardNumber" inputmode="numeric" autocomplete="off" maxlength="23" placeholder="Masukkan nomor kartu (contoh: 1234 atau 1234 5678 9012 3456)" style="margin-top:10px">
+  <small style="display:block;margin-top:7px">Untuk keamanan, kasir dapat memasukkan nomor kartu lengkap atau minimal 4 digit terakhir sesuai kebijakan toko.</small>
+</div>
 <div class="field"><label>KEMBALIAN</label><input id="change" readonly value="Rp0"></div>
 <div class="field"><label>STATUS DISKON</label><input id="discStatus" readonly value="Tidak ada diskon manual"></div>
 <div class="field full"><label>CATATAN TRANSAKSI (OPSIONAL)</label><textarea id="note" placeholder="Catatan umum transaksi..."></textarea></div>
@@ -164,7 +192,24 @@ h2{font-size:16px!important}
 <div class="actions"><button class="primary" onclick="pay()">✓ PROSES PEMBAYARAN</button></div>
 </section>
 </div>
-<section class="panel history"><h2 style="margin-top:0;font-size:17px">RIWAYAT TRANSAKSI</h2><div class="historyWrap"><table><thead><tr><th>NO STRUK</th><th>TANGGAL</th><th>STORE</th><th>GUIDE</th><th>ITEM</th><th>TOTAL</th><th>PEMBAYARAN</th><th>DISKON KHUSUS</th></tr></thead><tbody id="history"></tbody></table></div></section>
+<section class="panel history">
+  <h2 style="margin-top:0;font-size:17px">RIWAYAT TRANSAKSI</h2>
+  <div class="historyTools">
+    <input id="historySearch" type="search" autocomplete="off" placeholder="🔎 Cari No. Struk, tanggal, store, guide, SKU atau nama produk..." oninput="history()">
+  </div>
+  <div class="historyHint">Klik transaksi atau tombol DETAIL untuk melihat seluruh produk, SKU, Qty, diskon dan informasi pembayaran.</div>
+  <div class="historyWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>NO STRUK</th><th>TANGGAL</th><th>STORE</th><th>GUIDE</th>
+          <th>ITEM</th><th>TOTAL</th><th>PEMBAYARAN</th><th>DISKON KHUSUS</th><th>DETAIL</th>
+        </tr>
+      </thead>
+      <tbody id="history"></tbody>
+    </table>
+  </div>
+</section>
 
 <div id="receiptModal" class="receiptModal hidden">
   <div class="receiptCard">
@@ -192,8 +237,27 @@ function disc(p){return Math.max(0,Math.min(100,num(p.discount||p.diskon||p.disc
 function barcodeOf(p){return txt(p.barcode||p.barCode||p.barcodeNumber||p.ean||p.upc||p.code||'').trim()}
 function skuOf(p){return txt(p.sku||p.SKU||p.productCode||p.itemCode||p.code||'').trim()}
 function codeNorm(v){return txt(v).replace(/[^0-9A-Za-z]/g,'').toLowerCase()}
-function sameCode(a,b){let x=codeNorm(a),y=codeNorm(b);if(x===y)return true;if(/^0+\d+$/.test(x)&&x.replace(/^0+/,'')===y)return true;if(/^0+\d+$/.test(y)&&y.replace(/^0+/,'')===x)return true;return false}
-function findProduct(code){let q=txt(code).trim();return master.product.find(p=>sameCode(barcodeOf(p),q)||sameCode(skuOf(p),q))||master.product.find(p=>norm(txt(p.name||p.productName||p.nama))===norm(q))||null}
+function sameCode(a,b){
+ let x=codeNorm(a),y=codeNorm(b);
+ // Kode kosong TIDAK boleh dianggap sama, karena dapat membuat semua SKU
+ // mengarah ke produk/stok pertama.
+ if(!x||!y)return false;
+ if(x===y)return true;
+ if(/^0+\d+$/.test(x)&&x.replace(/^0+/,'')===y)return true;
+ if(/^0+\d+$/.test(y)&&y.replace(/^0+/,'')===x)return true;
+ return false
+}
+function findProduct(code){
+ let q=txt(code).trim();
+ if(!q)return null;
+ // SKU dan barcode diperiksa secara terpisah agar SKU berbeda tidak
+ // tertukar menjadi produk pertama yang kebetulan memiliki field kosong.
+ let bySku=master.product.find(p=>sameCode(skuOf(p),q));
+ if(bySku)return bySku;
+ let byBarcode=master.product.find(p=>sameCode(barcodeOf(p),q));
+ if(byBarcode)return byBarcode;
+ return master.product.find(p=>norm(txt(p.name||p.productName||p.nama))===norm(q))||null
+}
 function guides(){return Array.isArray(master.guide)?master.guide:[]}
 function guideNoOf(g){return txt(g.guideNo||g.code||g.no||g.id||g.guideCode).trim()}
 function guideNameOf(g){return txt(g.name||g.guideName||g.nama||g.fullName).trim()}
@@ -208,7 +272,16 @@ function addProduct(p){
  if(!p)return false;
  let available=stock(s,p);
  if(available<=0){alert('Produk ditemukan, tetapi stok di Store aktif kosong.');return false}
- let bc=barcodeOf(p),sku=skuOf(p),key=sku||bc||txt(p.id||p.name),i=cart.find(x=>x.productKey===key);
+ let bc=barcodeOf(p),sku=skuOf(p);
+ // SKU berbeda = item keranjang berbeda. Jika SKU kosong gunakan ID/barcode/nama
+ // sebagai identitas cadangan, tanpa menyatukan produk yang berbeda.
+ let pid=txt(p.id||p.productId||p.uuid||'').trim();
+ let key=pid
+   ? 'ID:'+pid
+   : (sku ? 'SKU:'+codeNorm(sku)
+      : (bc ? 'BARCODE:'+codeNorm(bc)
+         : 'NAME:'+norm(txt(p.name||p.productName||p.nama))+'|PRICE:'+price(p)));
+ let i=cart.find(x=>x.productKey===key);
  if(i){if(i.qty>=available){alert('Qty tidak boleh melebihi stok tersedia.');return false}i.qty++}
  else cart.push({productKey:key,barcode:bc,sku:sku,name:txt(p.name||p.productName||p.nama),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});
  renderCart();
@@ -245,18 +318,72 @@ window.addByIndex=n=>{let p=(window.__visibleProducts||[])[n];if(!p){alert('Prod
 window.add=code=>{load();let p=findProduct(code);if(!p){alert('Produk tidak ditemukan.');return}addProduct(p)}
 function renderCart(){let b=$('cartBody');b.innerHTML=!cart.length?'<tr><td colspan="8" class="empty">Keranjang masih kosong.</td></tr>':cart.map((i,n)=>{let c=calc(i);return `<tr><td><b>${esc(i.name)}</b><br><small>${esc(i.sku)}</small></td><td>${rp(i.price)}</td><td>${i.productDiscount}%</td><td><input type="number" min="0" max="100" value="${i.manualDiscount}" onchange="md(${n},this.value)"></td><td><input value="${esc(i.discountReason)}" placeholder="Wajib jika diskon manual" oninput="reason(${n},this.value)"></td><td><div class="qty"><button onclick="qty(${n},-1)">−</button><b>${i.qty}</b><button onclick="qty(${n},1)">+</button></div></td><td><b>${rp(c.total)}</b></td><td><button class="danger" onclick="remove(${n})">×</button></td></tr>`}).join('');totals()}
 window.md=(n,v)=>{cart[n].manualDiscount=Math.max(0,Math.min(100,num(v)));renderCart()};window.reason=(n,v)=>cart[n].discountReason=txt(v);window.qty=(n,d)=>{cart[n].qty=Math.max(0,cart[n].qty+d);if(!cart[n].qty)cart.splice(n,1);renderCart()};window.remove=n=>{cart.splice(n,1);renderCart()};window.clearCart=()=>{if(confirm('Kosongkan seluruh keranjang?')){cart=[];renderCart()}}
+function paymentFields(){
+  let isCard=$('payment').value==='DEBIT / CREDIT CARD';
+  $('cardFields').style.display=isCard?'block':'none';
+  if(!isCard){
+    $('cardType').value='';
+    $('cardBrand').value='';
+    $('cardNumber').value='';
+  }
+}
 function totals(){let a=0,b=0,c=0,t=0;cart.forEach(i=>{let x=calc(i);a+=x.base;b+=x.pd;c+=x.md;t+=x.total});$('subtotal').textContent=rp(a);$('prodDisc').textContent='- '+rp(b);$('manualDisc').textContent='- '+rp(c);$('grand').textContent=rp(t);let cash=num($('cash').value);$('change').value=$('payment').value==='CASH'?rp(Math.max(0,cash-t)):rp(0);$('discStatus').value=cart.filter(i=>i.manualDiscount>0).length?'Ada diskon manual':'Tidak ada diskon manual'}
-function history(){load();$('history').innerHTML=!trx.length?'<tr><td colspan="7" class="empty">Belum ada transaksi kasir.</td></tr>':trx.slice(0,50).map(t=>{let sp=(t.items||[]).filter(i=>i.manualDiscount>0).map(i=>`${esc(i.name)} ${i.manualDiscount}% — ${esc(i.discountReason)}`).join('<br>');return `<tr><td><b>${esc(t.receiptNo||t.id)}</b></td><td>${esc(t.date)}</td><td>${esc(t.storeName)}</td><td>${t.guideNo?'<b>'+esc(t.guideNo)+'</b><br><small>'+esc(t.guideName||'-')+'</small>':'-'}</td><td>${t.items.length} item</td><td><b>${rp(t.grandTotal)}</b></td><td><span class="badge">${esc(t.paymentMethod)}</span></td><td>${sp||'-'}</td></tr>`}).join('')}
+function history(){
+  load();
+  let q=norm($('historySearch')?$('historySearch').value:'');
+  let rows=(Array.isArray(trx)?trx:[]).filter(t=>{
+    if(!q)return true;
+    let itemText=(t.items||[]).map(i=>[
+      i.name,i.sku,i.barcode,i.productKey
+    ].join(' ')).join(' ');
+    let hay=[
+      t.receiptNo,t.id,t.date,t.storeCode,t.storeName,
+      t.guideNo,t.guideName,t.paymentMethod,itemText
+    ].join(' ');
+    return norm(hay).includes(q);
+  });
+
+  $('history').innerHTML=!rows.length
+    ?'<tr><td colspan="9" class="empty">'+(q?'Transaksi tidak ditemukan.':'Belum ada transaksi kasir.')+'</td></tr>'
+    :rows.slice(0,100).map((t,n)=>{
+      let sp=(t.items||[]).filter(i=>i.manualDiscount>0)
+        .map(i=>`${esc(i.name)} ${i.manualDiscount}% — ${esc(i.discountReason)}`)
+        .join('<br>');
+      let skuCount=(t.items||[]).length;
+      let qtyTotal=(t.items||[]).reduce((a,i)=>a+(Number(i.qty)||0),0);
+      let itemLabel=skuCount===1
+        ?`1 SKU / ${qtyTotal} Qty`
+        :`${skuCount} SKU / ${qtyTotal} Qty`;
+      return `<tr class="historyRow" onclick="openHistory(${n})" title="Klik untuk melihat detail transaksi">
+        <td><b>${esc(t.receiptNo||t.id)}</b></td>
+        <td>${esc(t.date)}</td>
+        <td>${esc(t.storeName)}</td>
+        <td>${t.guideNo?'<b>'+esc(t.guideNo)+'</b><br><small>'+esc(t.guideName||'-')+'</small>':'-'}</td>
+        <td>${itemLabel}</td>
+        <td><b>${rp(t.grandTotal)}</b></td>
+        <td><span class="badge">${esc(t.paymentMethod)}</span></td>
+        <td>${sp||'-'}</td>
+        <td><button type="button" class="historyDetailBtn" onclick="event.stopPropagation();openHistory(${n})">DETAIL</button></td>
+      </tr>`;
+    }).join('');
+
+  window.__historyRows=rows.slice(0,100);
+}
+window.openHistory=n=>{
+  let t=(window.__historyRows||[])[n];
+  if(!t){alert('Detail transaksi tidak ditemukan. Coba cari ulang.');return}
+  showReceipt(t);
+}
 function storeMaster(code){return (Array.isArray(master.store)?master.store:[]).find(x=>norm(x.code||x.storeCode||x.id)===norm(code))||{}}
 function showReceipt(t){
  let sm=storeMaster(t.storeCode),addr=txt(sm.address||sm.alamat||sm.storeAddress),phone=txt(sm.phone||sm.telepon||sm.whatsapp);
  let dt=new Date(t.timestamp||t.createdAt||t.date),dateText=isNaN(dt)?txt(t.date):dt.toLocaleString('id-ID');
  let sub=0,pd=0,md=0;
- let items=(t.items||[]).map(i=>{let base=num(i.base)||num(i.price)*num(i.qty),a=num(i.pd)||base*num(i.productDiscount)/100,b=num(i.md)||(base-a)*num(i.manualDiscount)/100,total=num(i.total)||base-a-b;sub+=base;pd+=a;md+=b;return `<div class="receiptItem"><div class="receiptItemTop"><span>${esc(i.name)}</span><span>${rp(total)}</span></div><div class="receiptItemSub"><span>${i.qty} × ${rp(i.price)}</span><span>${(i.productDiscount||i.manualDiscount)?'Diskon - '+rp(a+b):''}</span></div></div>`}).join('');
+ let items=(t.items||[]).map(i=>{let base=num(i.base)||num(i.price)*num(i.qty),a=num(i.pd)||base*num(i.productDiscount)/100,b=num(i.md)||(base-a)*num(i.manualDiscount)/100,total=num(i.total)||base-a-b;sub+=base;pd+=a;md+=b;let code=txt(i.sku||i.barcode||'');return `<div class="receiptItem"><div class="receiptItemTop"><span>${esc(i.name)}</span><span>${rp(total)}</span></div><div class="receiptItemSub"><span>${code?esc(code)+' • ':''}${i.qty} × ${rp(i.price)}</span><span>${(i.productDiscount||i.manualDiscount)?'Diskon - '+rp(a+b):''}</span></div></div>`}).join('');
  $('receiptContent').innerHTML=`<div class="receiptHead"><h2>${esc(t.storeName||'SYSTEMQ')}</h2>${addr?`<p>${esc(addr)}</p>`:''}${phone?`<p>${esc(phone)}</p>`:''}<p>STRUK PENJUALAN</p></div>
  <div class="receiptMeta"><div><span>NO. STRUK</span><b>${esc(t.receiptNo||t.id)}</b></div><div><span>TANGGAL</span><span>${esc(dateText)}</span></div>${t.guideNo?`<div><span>GUIDE</span><span>${esc(t.guideNo)} • ${esc(t.guideName||'-')}</span></div>`:''}</div>
  <div class="receiptItems">${items}</div>
- <div class="receiptTotals"><div class="rrow"><span>Subtotal</span><b>${rp(sub)}</b></div><div class="rrow"><span>Diskon Produk</span><b>- ${rp(pd)}</b></div><div class="rrow"><span>Diskon Manual / Khusus</span><b>- ${rp(md)}</b></div><div class="rrow rgrand"><span>TOTAL BAYAR</span><span>${rp(t.grandTotal)}</span></div><div class="rrow"><span>PEMBAYARAN</span><b>${esc(t.paymentMethod)}</b></div>${t.paymentMethod==='CASH'?`<div class="rrow"><span>Uang Diterima</span><b>${rp(t.cashReceived)}</b></div><div class="rrow"><span>Kembalian</span><b>${rp(t.changeAmount)}</b></div>`:''}</div>
+ <div class="receiptTotals"><div class="rrow"><span>Subtotal</span><b>${rp(sub)}</b></div><div class="rrow"><span>Diskon Produk</span><b>- ${rp(pd)}</b></div><div class="rrow"><span>Diskon Manual / Khusus</span><b>- ${rp(md)}</b></div><div class="rrow rgrand"><span>TOTAL BAYAR</span><span>${rp(num(t.grandTotal)||Math.max(0,sub-pd-md))}</span></div><div class="rrow"><span>PEMBAYARAN</span><b>${esc(t.paymentMethod)}</b></div>${t.paymentMethod==='DEBIT / CREDIT CARD'?`<div class="rrow"><span>JENIS KARTU</span><b>${esc(t.cardType||'-')}</b></div><div class="rrow"><span>BRAND KARTU</span><b>${esc(t.cardBrand||'-')}</b></div><div class="rrow"><span>NO. KARTU</span><b>${esc(t.cardNumber||'-')}</b></div>`:''}${t.paymentMethod==='CASH'?`<div class="rrow"><span>Uang Diterima</span><b>${rp(t.cashReceived)}</b></div><div class="rrow"><span>Kembalian</span><b>${rp(t.changeAmount)}</b></div>`:''}</div>
  ${t.note?`<div class="receiptMeta"><b>CATATAN</b><br>${esc(t.note)}</div>`:''}
  <div class="receiptFooter">Terima kasih telah berbelanja<br>Simpan struk ini sebagai bukti transaksi</div>`;
  $('receiptModal').classList.remove('hidden');
@@ -264,8 +391,20 @@ function showReceipt(t){
 function closeReceipt(){$('receiptModal').classList.add('hidden');}
 function printReceipt(){window.print();}
 function nextReceiptNo(s,now){let date=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');let prefix=(txt(s.code).trim()||'STORE').toUpperCase()+'-'+date+'-';let max=0;(Array.isArray(trx)?trx:[]).forEach(t=>{let id=txt(t.receiptNo||t.id);if(id.startsWith(prefix)){let n=parseInt(id.slice(prefix.length),10);if(n>max)max=n}});return prefix+String(max+1).padStart(4,'0')}
-window.pay=()=>{load();let s=store();if(!s.code)return alert('Store aktif belum tersedia.');if(!cart.length)return alert('Keranjang masih kosong.');for(let i of cart)if(i.manualDiscount>0&&!i.discountReason.trim())return alert('Keterangan Diskon wajib diisi untuk '+i.name+'.');let total=cart.reduce((a,i)=>a+calc(i).total,0);if($('payment').value==='CASH'&&num($('cash').value)<total)return alert('Uang diterima kurang dari total pembayaran.');if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>({...i,...calc(i)}));items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});let received=$('payment').value==='CASH'?num($('cash').value):total,change=$('payment').value==='CASH'?Math.max(0,received-total):0,transaction={id,receiptNo:id,date:now.toISOString().slice(0,10),timestamp:now.toISOString(),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,cashReceived:received,changeAmount:change,note:$('note').value,status:'PAID'};trx.unshift(transaction);localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));cart=[];$('cash').value='';$('note').value='';$('guideNo').value='';$('guideName').textContent='Tidak ada guide dipilih';render();showReceipt(transaction)}
-function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}let scanTimer=null;
+window.pay=()=>{load();let s=store();if(!s.code)return alert('Store aktif belum tersedia.');if(!cart.length)return alert('Keranjang masih kosong.');for(let i of cart)if(i.manualDiscount>0&&!i.discountReason.trim())return alert('Keterangan Diskon wajib diisi untuk '+i.name+'.');let total=cart.reduce((a,i)=>a+calc(i).total,0);
+if($('payment').value==='CASH'&&num($('cash').value)<total)return alert('Uang diterima kurang dari total pembayaran.');
+if($('payment').value==='DEBIT / CREDIT CARD'){
+  let cardType=$('cardType').value.trim(),cardBrand=$('cardBrand').value.trim(),cardNumber=$('cardNumber').value.replace(/\s+/g,'').trim();
+  if(!cardType)return alert('Pilih jenis kartu: Debit atau Credit Card.');
+  if(!cardBrand)return alert('Pilih brand kartu.');
+  if(!cardNumber)return alert('Masukkan nomor kartu atau minimal 4 digit terakhir.');
+}
+if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>({...i,...calc(i)}));items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});let received=$('payment').value==='CASH'?num($('cash').value):total,change=$('payment').value==='CASH'?Math.max(0,received-total):0,transaction={id,receiptNo:id,date:now.toISOString().slice(0,10),timestamp:now.toISOString(),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,
+cardType:$('payment').value==='DEBIT / CREDIT CARD'?$('cardType').value:'',
+cardBrand:$('payment').value==='DEBIT / CREDIT CARD'?$('cardBrand').value:'',
+cardNumber:$('payment').value==='DEBIT / CREDIT CARD'?$('cardNumber').value.trim():'',
+cashReceived:received,changeAmount:change,note:$('note').value,status:'PAID'};trx.unshift(transaction);localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));cart=[];$('cash').value='';$('cardType').value='';$('cardBrand').value='';$('cardNumber').value='';$('note').value='';$('guideNo').value='';$('guideName').textContent='Tidak ada guide dipilih';paymentFields();render();showReceipt(transaction)}
+function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';paymentFields();$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}let scanTimer=null;
 function autoScanExact(){clearTimeout(scanTimer);scanTimer=setTimeout(()=>{let code=txt($('search').value).trim();if(!code)return;load();let exact=findProduct(code);if(exact)scanProduct()},180)}
 $('search').addEventListener('input',()=>{products();autoScanExact()});
 function forceScan(e){
