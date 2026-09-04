@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SYSTEMQ • Kasir</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f5f7;font-family:Arial,sans-serif;color:#1d2730}.topbar{background:#18212a;color:#fff;padding:14px 4%;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand b{display:block;font-size:22px}.brand small{font-size:10px;letter-spacing:1.5px;opacity:.75}button,a{font:inherit;font-weight:700;border:1px solid #cfd6db;background:#fff;color:#1d2730;padding:10px 13px;border-radius:9px;cursor:pointer;text-decoration:none}main{max-width:1450px;margin:auto;padding:22px}.head{display:flex;justify-content:space-between;align-items:end;margin-bottom:16px}.head h1{margin:0 0 5px}.head p{margin:0;color:#6d7780}.notice{padding:12px;border:1px solid #f2dfbe;background:#fff6e9;border-radius:9px;font-size:12px;margin-bottom:14px}.layout{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}.panel{background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:18px}.field label{display:block;font-size:11px;font-weight:800;margin-bottom:7px}input,select,textarea{width:100%;font:inherit;border:1px solid #cfd6db;border-radius:9px;padding:11px}.productList{margin-top:12px;border-top:1px solid #edf0f2;max-height:600px;overflow:auto}.product{padding:12px 3px;border-bottom:1px solid #edf0f2;display:flex;justify-content:space-between;gap:10px}.product small{display:block;color:#6d7780;margin-top:4px}.price{font-weight:900;text-align:right}.cart{overflow:auto;border:1px solid #e3e7ea;border-radius:10px}.cart table,.history table{width:100%;min-width:850px;border-collapse:collapse}.cart th,.cart td,.history th,.history td{padding:10px;border-bottom:1px solid #edf0f2;text-align:left;font-size:12px;vertical-align:top}.cart th,.history th{background:#f7f8f9;font-size:10px}.cart input{padding:8px}.qty{display:flex;gap:5px;align-items:center}.qty button{padding:5px 9px}.empty{text-align:center;color:#75808a;padding:28px}.totals{margin-top:14px;border-top:1px solid #e5e9ec;padding-top:12px}.row{display:flex;justify-content:space-between;margin:7px 0}.grand{font-size:23px;font-weight:900;margin-top:12px}.payment{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.customerBox{grid-column:1/-1;border:1px solid #dfe5e9;background:#fafbfc;border-radius:10px;padding:12px}.customerBoxTitle{font-size:11px;font-weight:900;margin-bottom:10px}.customerHint{display:block;margin-top:7px;color:#6d7780;font-size:11px}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.primary{background:#1d2730;color:#fff;border-color:#1d2730}.danger{color:#b42318;border-color:#efc2bd}.history{margin-top:18px}.historyWrap{overflow:auto;border:1px solid #e3e7ea;border-radius:10px}.badge{font-size:10px;font-weight:900;border:1px solid #dce2e6;border-radius:999px;padding:4px 7px}.hidden{display:none!important}@media(max-width:900px){.layout{grid-template-columns:1fr}.head,.topbar{flex-direction:column;align-items:flex-start}.payment{grid-template-columns:1fr}main{padding:14px}}
+*{box-sizing:border-box}body{margin:0;background:#f3f5f7;font-family:Arial,sans-serif;color:#1d2730}.topbar{background:#18212a;color:#fff;padding:14px 4%;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand b{display:block;font-size:22px}.brand small{font-size:10px;letter-spacing:1.5px;opacity:.75}button,a{font:inherit;font-weight:700;border:1px solid #cfd6db;background:#fff;color:#1d2730;padding:10px 13px;border-radius:9px;cursor:pointer;text-decoration:none}main{max-width:1450px;margin:auto;padding:22px}.head{display:flex;justify-content:space-between;align-items:end;margin-bottom:16px}.head h1{margin:0 0 5px}.head p{margin:0;color:#6d7780}.notice{padding:12px;border:1px solid #f2dfbe;background:#fff6e9;border-radius:9px;font-size:12px;margin-bottom:14px}.layout{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}.panel{background:#fff;border:1px solid #dfe5e9;border-radius:14px;padding:18px}.field label{display:block;font-size:11px;font-weight:800;margin-bottom:7px}input,select,textarea{width:100%;font:inherit;border:1px solid #cfd6db;border-radius:9px;padding:11px}.productList{margin-top:12px;border-top:1px solid #edf0f2;max-height:600px;overflow:auto}.product{padding:12px 3px;border-bottom:1px solid #edf0f2;display:flex;justify-content:space-between;gap:10px}.product small{display:block;color:#6d7780;margin-top:4px}.price{font-weight:900;text-align:right}.cart{overflow:auto;border:1px solid #e3e7ea;border-radius:10px}.cart table,.history table{width:100%;min-width:850px;border-collapse:collapse}.cart th,.cart td,.history th,.history td{padding:10px;border-bottom:1px solid #edf0f2;text-align:left;font-size:12px;vertical-align:top}.cart th,.history th{background:#f7f8f9;font-size:10px}.cart input{padding:8px}.qty{display:flex;gap:5px;align-items:center}.qty button{padding:5px 9px}.empty{text-align:center;color:#75808a;padding:28px}.totals{margin-top:14px;border-top:1px solid #e5e9ec;padding-top:12px}.row{display:flex;justify-content:space-between;margin:7px 0}.grand{font-size:23px;font-weight:900;margin-top:12px}.payment{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.primary{background:#1d2730;color:#fff;border-color:#1d2730}.danger{color:#b42318;border-color:#efc2bd}.history{margin-top:18px}.historyWrap{overflow:auto;border:1px solid #e3e7ea;border-radius:10px}.badge{font-size:10px;font-weight:900;border:1px solid #dce2e6;border-radius:999px;padding:4px 7px}.hidden{display:none!important}@media(max-width:900px){.layout{grid-template-columns:1fr}.head,.topbar{flex-direction:column;align-items:flex-start}.payment{grid-template-columns:1fr}main{padding:14px}}
 
 
 /* PEMBEDAAN VISUAL AREA POS */
@@ -162,14 +162,6 @@ h2{font-size:16px!important}
 <datalist id="guideList"></datalist>
 <small id="guideName" style="display:block;margin-top:7px;font-weight:800;color:#1d2730">Tidak ada guide dipilih</small>
 </div>
-<div class="customerBox">
-  <div class="customerBoxTitle">STRUK DIGITAL CUSTOMER (OPSIONAL)</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <div class="field"><label>WHATSAPP CUSTOMER</label><input id="customerWA" type="tel" inputmode="tel" autocomplete="tel" placeholder="Contoh: 081234567890"></div>
-    <div class="field"><label>EMAIL CUSTOMER</label><input id="customerEmail" type="email" inputmode="email" autocomplete="email" placeholder="customer@email.com"></div>
-  </div>
-  <small class="customerHint">Isi WhatsApp, Email, atau keduanya. Tidak perlu nama. Data disimpan bersama transaksi dan menjadi database customer.</small>
-</div>
 <div class="field"><label>METODE PEMBAYARAN *</label><select id="payment" onchange="paymentFields();totals()"><option>CASH</option><option>QRIS</option><option>DEBIT / CREDIT CARD</option><option>TRANSFER</option></select></div>
 <div class="field"><label>UANG DITERIMA</label><input id="cash" inputmode="numeric" placeholder="0" oninput="totals()"></div>
 <div id="cardFields" class="field full" style="display:none">
@@ -224,66 +216,16 @@ h2{font-size:16px!important}
     <div id="receiptContent"></div>
     <div class="receiptActions">
       <button class="receiptClose" onclick="closeReceipt()">SELESAI</button>
-      <button id="sendWAReceipt" type="button" onclick="sendCurrentReceiptWA()" style="display:none">📱 KIRIM WA</button>
-      <button id="sendEmailReceipt" type="button" onclick="sendCurrentReceiptEmail()" style="display:none">✉️ KIRIM EMAIL</button>
       <button class="primary" onclick="printReceipt()">🖨 CETAK STRUK</button>
     </div>
   </div>
 </div>
 </main>
 <script>
-const MASTER='systemq_v17_data',GR='systemq_inventory_goods_receiving_v1',STOCK='systemq_inventory_stock_v1',MOVE='systemq_inventory_stock_movement_v1',TRX='systemq_cashier_transactions_v1',CUSTOMER='systemq_customer_database_v1';
-let master={},docs=[],stocks=[],moves=[],trx=[],customers=[],cart=[];
+const MASTER='systemq_v17_data',GR='systemq_inventory_goods_receiving_v1',STOCK='systemq_inventory_stock_v1',MOVE='systemq_inventory_stock_movement_v1',TRX='systemq_cashier_transactions_v1';
+let master={},docs=[],stocks=[],moves=[],trx=[],cart=[];
 const $=id=>document.getElementById(id),txt=v=>String(v??''),norm=v=>txt(v).trim().toLowerCase(),num=v=>{let n=Number(txt(v).replace(/[^0-9.-]/g,''));return isFinite(n)?n:0},rp=v=>'Rp'+Math.round(v||0).toLocaleString('id-ID'),esc=v=>txt(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-function normalizeWA(v){
-  let d=txt(v).replace(/\D/g,'');
-  if(!d)return '';
-  if(d.startsWith('62'))return d;
-  if(d.startsWith('0'))return '62'+d.slice(1);
-  return d
-}
-function normalizeEmail(v){return txt(v).trim().toLowerCase()}
-function validEmail(v){return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)}
-function saveCustomerContact(transaction){
-  let wa=normalizeWA(transaction.customerWA);
-  let email=normalizeEmail(transaction.customerEmail);
-  if(!wa&&!email)return;
-  let found=customers.find(c=>(wa&&normalizeWA(c.whatsapp)===wa)||(email&&normalizeEmail(c.email)===email));
-  if(!found){
-    found={id:'CUS-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),whatsapp:wa?('+'+wa):'',email,firstTransactionAt:transaction.timestamp,transactionCount:0,totalSpent:0,lastTransactionAt:'',lastReceiptNo:''};
-    customers.unshift(found);
-  }else{
-    if(wa)found.whatsapp='+'+wa;
-    if(email)found.email=email;
-  }
-  found.transactionCount=(Number(found.transactionCount)||0)+1;
-  found.totalSpent=(Number(found.totalSpent)||0)+(Number(transaction.grandTotal)||0);
-  found.lastTransactionAt=transaction.timestamp;
-  found.lastReceiptNo=transaction.receiptNo||transaction.id||'';
-  localStorage.setItem(CUSTOMER,JSON.stringify(customers));
-}
-function receiptShareText(t){
-  let lines=['STRUK PENJUALAN','Store: '+txt(t.storeName||'SYSTEMQ'),'No. Struk: '+txt(t.receiptNo||t.id),'Tanggal: '+new Date(t.timestamp||t.date).toLocaleString('id-ID'),'','ITEM BELANJA'];
-  (t.items||[]).forEach(i=>lines.push('- '+txt(i.name)+' | '+txt(i.qty)+' x '+rp(i.price)+' = '+rp(i.total||0)));
-  lines.push('','TOTAL BAYAR: '+rp(t.grandTotal),'Pembayaran: '+txt(t.paymentMethod||'-'),'','Terima kasih telah berbelanja.');
-  return lines.join('\n');
-}
-function sendReceiptWA(t){
-  let wa=normalizeWA(t.customerWA);
-  if(!wa)return alert('Nomor WhatsApp customer belum tersedia.');
-  window.open('https://wa.me/'+encodeURIComponent(wa)+'?text='+encodeURIComponent(receiptShareText(t)),'_blank');
-}
-function sendReceiptEmail(t){
-  let email=normalizeEmail(t.customerEmail);
-  if(!email)return alert('Email customer belum tersedia.');
-  let subject='Struk Pembelian '+txt(t.receiptNo||t.id)+' - '+txt(t.storeName||'SYSTEMQ');
-  window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(receiptShareText(t));
-}
-function load(){try{master=JSON.parse(localStorage.getItem(MASTER)||'{}')}catch(e){master={}}try{docs=JSON.parse(localStorage.getItem(GR)||'[]')}catch(e){docs=[]}try{stocks=JSON.parse(localStorage.getItem(STOCK)||'[]')}catch(e){stocks=[]}try{moves=JSON.parse(localStorage.getItem(MOVE)||'[]')}catch(e){moves=[]}try{trx=JSON.parse(localStorage.getItem(TRX)||'[]')}catch(e){trx=[]}
-try{customers=JSON.parse(localStorage.getItem(CUSTOMER)||'[]')}catch(e){customers=[]}
-if(!Array.isArray(customers))customers=[]
-if(!Array.isArray(master.product))master.product=[]}
+function load(){try{master=JSON.parse(localStorage.getItem(MASTER)||'{}')}catch(e){master={}}try{docs=JSON.parse(localStorage.getItem(GR)||'[]')}catch(e){docs=[]}try{stocks=JSON.parse(localStorage.getItem(STOCK)||'[]')}catch(e){stocks=[]}try{moves=JSON.parse(localStorage.getItem(MOVE)||'[]')}catch(e){moves=[]}try{trx=JSON.parse(localStorage.getItem(TRX)||'[]')}catch(e){trx=[]}if(!Array.isArray(master.product))master.product=[]}
 function store(){let x=null;docs.forEach(d=>{if(norm(d.status)!=='posted'||!txt(d.storeCode).trim())return;let t=txt(d.postedAt||d.updatedAt||d.createdAt);if(!x||t>txt(x.postedAt||x.updatedAt||x.createdAt))x=d});if(x)return {code:txt(x.storeCode),name:txt(x.storeName||x.storeCode)};if(stocks.length){let r=stocks.slice().sort((a,b)=>txt(b.updatedAt).localeCompare(txt(a.updatedAt)))[0];return {code:txt(r.storeCode),name:txt(r.storeName||r.storeCode)}}return {code:'',name:''}}
 function stock(s,p){
  let sku=skuOf(p),bc=barcodeOf(p),keys=[s.code+'|'+sku,s.code+'|'+bc];
@@ -404,7 +346,7 @@ function history(){
     ].join(' ')).join(' ');
     let hay=[
       t.receiptNo,t.id,t.date,t.storeCode,t.storeName,
-      t.guideNo,t.guideName,t.paymentMethod,t.customerWA,t.customerEmail,itemText
+      t.guideNo,t.guideName,t.paymentMethod,itemText
     ].join(' ');
     return norm(hay).includes(q);
   });
@@ -447,27 +389,18 @@ function showReceipt(t){
  let sub=0,pd=0,md=0;
  let items=(t.items||[]).map(i=>{let base=num(i.base)||num(i.price)*num(i.qty),a=num(i.pd)||base*num(i.productDiscount)/100,b=num(i.md)||(base-a)*num(i.manualDiscount)/100,total=num(i.total)||base-a-b;sub+=base;pd+=a;md+=b;let code=txt(i.sku||i.barcode||'');return `<div class="receiptItem"><div class="receiptItemTop"><span>${esc(i.name)}</span><span>${rp(total)}</span></div><div class="receiptItemSub"><span>${code?esc(code)+' • ':''}${i.qty} × ${rp(i.price)}</span><span>${(i.productDiscount||i.manualDiscount)?'Diskon - '+rp(a+b):''}</span></div></div>`}).join('');
  $('receiptContent').innerHTML=`<div class="receiptHead"><h2>${esc(t.storeName||'SYSTEMQ')}</h2>${addr?`<p>${esc(addr)}</p>`:''}${phone?`<p>${esc(phone)}</p>`:''}<p>STRUK PENJUALAN</p></div>
- <div class="receiptMeta"><div><span>NO. STRUK</span><b>${esc(t.receiptNo||t.id)}</b></div><div><span>TANGGAL</span><span>${esc(dateText)}</span></div>${t.guideNo?`<div><span>GUIDE</span><span>${esc(t.guideNo)} • ${esc(t.guideName||'-')}</span></div>`:''}${t.customerWA?`<div><span>WHATSAPP</span><span>${esc(t.customerWA)}</span></div>`:''}${t.customerEmail?`<div><span>EMAIL</span><span>${esc(t.customerEmail)}</span></div>`:''}</div>
+ <div class="receiptMeta"><div><span>NO. STRUK</span><b>${esc(t.receiptNo||t.id)}</b></div><div><span>TANGGAL</span><span>${esc(dateText)}</span></div>${t.guideNo?`<div><span>GUIDE</span><span>${esc(t.guideNo)} • ${esc(t.guideName||'-')}</span></div>`:''}</div>
  <div class="receiptItems">${items}</div>
  <div class="receiptTotals"><div class="rrow"><span>Subtotal</span><b>${rp(sub)}</b></div><div class="rrow"><span>Diskon Produk</span><b>- ${rp(pd)}</b></div><div class="rrow"><span>Diskon Manual / Khusus</span><b>- ${rp(md)}</b></div><div class="rrow rgrand"><span>TOTAL BAYAR</span><span>${rp(num(t.grandTotal)||Math.max(0,sub-pd-md))}</span></div><div class="rrow"><span>PEMBAYARAN</span><b>${esc(t.paymentMethod)}</b></div>${t.paymentMethod==='DEBIT / CREDIT CARD'?`<div class="rrow"><span>JENIS KARTU</span><b>${esc(t.cardType||'-')}</b></div><div class="rrow"><span>BRAND KARTU</span><b>${esc(t.cardBrand||'-')}</b></div><div class="rrow"><span>NO. KARTU</span><b>${esc(t.cardNumber||'-')}</b></div>`:''}${t.paymentMethod==='CASH'?`<div class="rrow"><span>Uang Diterima</span><b>${rp(t.cashReceived)}</b></div><div class="rrow"><span>Kembalian</span><b>${rp(t.changeAmount)}</b></div>`:''}</div>
  ${t.note?`<div class="receiptMeta"><b>CATATAN</b><br>${esc(t.note)}</div>`:''}
  <div class="receiptFooter">Terima kasih telah berbelanja<br>Simpan struk ini sebagai bukti transaksi</div>`;
- window.__currentReceipt=t;
- let waBtn=$('sendWAReceipt'),emailBtn=$('sendEmailReceipt');
- if(waBtn)waBtn.style.display=t.customerWA?'block':'none';
- if(emailBtn)emailBtn.style.display=t.customerEmail?'block':'none';
  $('receiptModal').classList.remove('hidden');
 }
-function sendCurrentReceiptWA(){if(window.__currentReceipt)sendReceiptWA(window.__currentReceipt)}
-function sendCurrentReceiptEmail(){if(window.__currentReceipt)sendReceiptEmail(window.__currentReceipt)}
 function closeReceipt(){$('receiptModal').classList.add('hidden');}
 function printReceipt(){window.print();}
 function nextReceiptNo(s,now){let date=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');let prefix=(txt(s.code).trim()||'STORE').toUpperCase()+'-'+date+'-';let max=0;(Array.isArray(trx)?trx:[]).forEach(t=>{let id=txt(t.receiptNo||t.id);if(id.startsWith(prefix)){let n=parseInt(id.slice(prefix.length),10);if(n>max)max=n}});return prefix+String(max+1).padStart(4,'0')}
 window.pay=()=>{load();let s=store();if(!s.code)return alert('Store aktif belum tersedia.');if(!cart.length)return alert('Keranjang masih kosong.');for(let i of cart)if(i.manualDiscount>0&&!i.discountReason.trim())return alert('Keterangan Diskon wajib diisi untuk '+i.name+'.');let total=cart.reduce((a,i)=>a+calc(i).total,0);
 if($('payment').value==='CASH'&&num($('cash').value)<total)return alert('Uang diterima kurang dari total pembayaran.');
-let customerWA=normalizeWA($('customerWA').value);
-let customerEmail=normalizeEmail($('customerEmail').value);
-if(!validEmail(customerEmail))return alert('Format email customer tidak valid.');
 if($('payment').value==='DEBIT / CREDIT CARD'){
   let cardType=$('cardType').value.trim(),cardBrand=$('cardBrand').value.trim(),cardNumber=$('cardNumber').value.replace(/\s+/g,'').trim();
   if(!cardType)return alert('Pilih jenis kartu: Debit atau Credit Card.');
@@ -478,7 +411,7 @@ if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nex
 cardType:$('payment').value==='DEBIT / CREDIT CARD'?$('cardType').value:'',
 cardBrand:$('payment').value==='DEBIT / CREDIT CARD'?$('cardBrand').value:'',
 cardNumber:$('payment').value==='DEBIT / CREDIT CARD'?$('cardNumber').value.trim():'',
-customerWA:customerWA?('+'+customerWA):'',customerEmail:customerEmail,cashReceived:received,changeAmount:change,note:$('note').value,status:'PAID'};trx.unshift(transaction);saveCustomerContact(transaction);localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));cart=[];$('cash').value='';$('cardType').value='';$('cardBrand').value='';$('cardNumber').value='';$('customerWA').value='';$('customerEmail').value='';$('note').value='';$('guideNo').value='';$('guideName').textContent='Tidak ada guide dipilih';paymentFields();render();showReceipt(transaction)}
+cashReceived:received,changeAmount:change,note:$('note').value,status:'PAID'};trx.unshift(transaction);localStorage.setItem(STOCK,JSON.stringify(stocks));localStorage.setItem(MOVE,JSON.stringify(moves));localStorage.setItem(TRX,JSON.stringify(trx));cart=[];$('cash').value='';$('cardType').value='';$('cardBrand').value='';$('cardNumber').value='';$('note').value='';$('guideNo').value='';$('guideName').textContent='Tidak ada guide dipilih';paymentFields();render();showReceipt(transaction)}
 function render(){load();renderGuides();let s=store();$('storeLabel').textContent=s.code?'STORE: '+s.name:'Belum ada Store aktif';paymentFields();$('notice').textContent=s.code?'Produk menggunakan stok Store aktif. Jika Diskon Manual diisi, Keterangan Diskon wajib diisi (contoh: Staff Perusahaan).':'Belum ada Store aktif. Posting Goods Receiving terlebih dahulu.';products();renderCart();history()}let scanTimer=null;
 function autoScanExact(){clearTimeout(scanTimer);scanTimer=setTimeout(()=>{let code=txt($('search').value).trim();if(!code)return;load();let exact=findProduct(code);if(exact)scanProduct()},180)}
 $('search').addEventListener('input',()=>{products();autoScanExact()});
