@@ -337,7 +337,15 @@ function saveDraft(){
   var label=supplier;suppliers().forEach(function(s){if(supplierKey(s)===supplier)label=supplierLabel(s);});
   current.date=date;current.storeCode=store;current.storeName=storeLabelValue;current.supplier=supplier;current.supplierName=label;current.plNo=pl;current.note=note;
   current.items=Array.isArray(current.items)?current.items:[];current.status='DRAFT';current.updatedAt=new Date().toISOString();
-  persistCurrent();showImport();
+  persistCurrent();
+  // Pindah ke Import PL setelah draft benar-benar tersimpan.
+  // Tidak menggunakan reload agar form tidak hilang saat live sync berjalan.
+  showImport();
+  setTimeout(function(){
+    try{
+      if(current && current.id)showImport();
+    }catch(e){console.warn('SYSTEMQ lanjut Import PL:',e);}
+  },0);
 }
 function showImport(){
   if(!current)return;
@@ -605,7 +613,8 @@ var SYSTEMQ_KEYS=[
  'systemq_inventory_goods_receiving_v1',
  'systemq_inventory_stock_v1',
  'systemq_inventory_stock_movement_v1',
- 'systemq_cashier_sales_v1'
+ 'systemq_cashier_sales_v1',
+ 'systemq_cashier_transactions_v1'
 ];
 var sb=null, ready=false, applying=false, timer=null;
 
@@ -690,10 +699,18 @@ boot();
 
 <script>
 window.addEventListener('systemq-cloud-sync',function(){
-  if(!window.__systemqCloudReloading){
-    window.__systemqCloudReloading=true;
-    setTimeout(function(){location.reload();},120);
-  }
+  /*
+    Jangan reload otomatis setelah SIMPAN & LANJUT IMPORT PL.
+    Reload sebelumnya membuat layar kembali/hilang saat realtime sync menerima update sendiri.
+  */
+  try{
+    if(typeof current!=='undefined' && current && current.id){
+      load();
+      var latest=null;
+      docs.forEach(function(d){if(d.id===current.id)latest=d;});
+      if(latest)current=latest;
+    }
+  }catch(e){console.warn('SYSTEMQ refresh inventory:',e);}
 });
 </script>
 

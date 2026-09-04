@@ -225,7 +225,22 @@ function scanProduct(){
  // Produk ditemukan: tetap lanjutkan, stok akan divalidasi dari data stok store yang kompatibel.
  if(addProduct(p)){$('search').value='';products();$('search').focus()}
 }
-function products(){load();let s=store(),q=norm($('search').value),rows=master.product.filter(p=>stock(s,p)>0&&(!q||(norm(txt(p.name||p.productName||p.nama))+' '+norm(skuOf(p))+' '+norm(barcodeOf(p))+' '+norm(p.brand)).includes(q));$('productList').innerHTML=!s.code?'<div class="empty">Belum ada Store aktif / stok tersedia.</div>':!rows.length?'<div class="empty">Produk tidak ditemukan atau stok kosong.</div>':rows.slice(0,100).map((p,n)=>`<div class="product"><div><b>${esc(p.name||p.productName||p.nama||'-')}</b><small>${esc(skuOf(p)||'-')} • ${esc(barcodeOf(p)||'-')} • STOK: ${stock(s,p)}${disc(p)?' • DISKON '+disc(p)+'%':''}</small></div><div><div class="price">${rp(price(p))}</div><button type="button" onclick="addByIndex(${n})">+ TAMBAH</button></div></div>`).join('');window.__visibleProducts=rows.slice(0,100)}
+function products(){
+  load();
+  let s=store(),q=norm($('search').value);
+  let rows=master.product.filter(p=>{
+    if(stock(s,p)<=0)return false;
+    if(!q)return true;
+    let hay=norm(txt(p.name||p.productName||p.nama))+' '+norm(skuOf(p))+' '+norm(barcodeOf(p))+' '+norm(p.brand);
+    return hay.includes(q);
+  });
+  $('productList').innerHTML=!s.code
+    ?'<div class="empty">Belum ada Store aktif / stok tersedia.</div>'
+    :!rows.length
+      ?'<div class="empty">Produk tidak ditemukan atau stok kosong.</div>'
+      :rows.slice(0,100).map((p,n)=>`<div class="product"><div><b>${esc(p.name||p.productName||p.nama||'-')}</b><small>${esc(skuOf(p)||'-')} • ${esc(barcodeOf(p)||'-')} • STOK: ${stock(s,p)}${disc(p)?' • DISKON '+disc(p)+'%':''}</small></div><div><div class="price">${rp(price(p))}</div><button type="button" onclick="addByIndex(${n})">+ TAMBAH</button></div></div>`).join('');
+  window.__visibleProducts=rows.slice(0,100);
+}
 window.addByIndex=n=>{let p=(window.__visibleProducts||[])[n];if(!p){alert('Produk tidak dapat dibaca. Coba cari ulang.');return}addProduct(p)}
 window.add=code=>{load();let p=findProduct(code);if(!p){alert('Produk tidak ditemukan.');return}addProduct(p)}
 function renderCart(){let b=$('cartBody');b.innerHTML=!cart.length?'<tr><td colspan="8" class="empty">Keranjang masih kosong.</td></tr>':cart.map((i,n)=>{let c=calc(i);return `<tr><td><b>${esc(i.name)}</b><br><small>${esc(i.sku)}</small></td><td>${rp(i.price)}</td><td>${i.productDiscount}%</td><td><input type="number" min="0" max="100" value="${i.manualDiscount}" onchange="md(${n},this.value)"></td><td><input value="${esc(i.discountReason)}" placeholder="Wajib jika diskon manual" oninput="reason(${n},this.value)"></td><td><div class="qty"><button onclick="qty(${n},-1)">−</button><b>${i.qty}</b><button onclick="qty(${n},1)">+</button></div></td><td><b>${rp(c.total)}</b></td><td><button class="danger" onclick="remove(${n})">×</button></td></tr>`}).join('');totals()}
@@ -282,7 +297,8 @@ var SYSTEMQ_KEYS=[
  'systemq_inventory_goods_receiving_v1',
  'systemq_inventory_stock_v1',
  'systemq_inventory_stock_movement_v1',
- 'systemq_cashier_sales_v1'
+ 'systemq_cashier_sales_v1',
+ 'systemq_cashier_transactions_v1'
 ];
 var sb=null, ready=false, applying=false, timer=null;
 
@@ -373,10 +389,8 @@ boot();
 
 <script>
 window.addEventListener('systemq-cloud-sync',function(){
-  if(!window.__systemqCloudReloading){
-    window.__systemqCloudReloading=true;
-    setTimeout(function(){location.reload();},120);
-  }
+  /* Jangan reload halaman otomatis: reload dapat memutus proses scan/transaksi. */
+  try{ render(); }catch(e){ console.warn('SYSTEMQ refresh kasir:',e); }
 });
 </script>
 
