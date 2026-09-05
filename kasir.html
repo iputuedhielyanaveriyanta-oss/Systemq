@@ -292,10 +292,6 @@ function stock(s,p){
 }
 function price(p){return num(p.price||p.sellingPrice||p.harga||p.salePrice||p.retailPrice)}
 function disc(p){return Math.max(0,Math.min(100,num(p.discount||p.diskon||p.discountPercent)))}
-function marginOf(p){return Math.max(0,Math.min(100,num(p.margin||p.marginPercent||p.marginPct||p.companyMargin||p['MARGIN']||p['Margin %'])))}
-function supplierOf(p){return txt(p.supplier||p.supplierName||p.supplierCode||p.vendor||p['SUPPLIER']||'').trim()}
-function brandOf(p){return txt(p.brand||p.brandName||p['BRAND']||'').trim()}
-
 function barcodeOf(p){return txt(p.barcode||p.barCode||p.barcodeNumber||p.ean||p.upc||p.code||'').trim()}
 function skuOf(p){return txt(p.sku||p.SKU||p.productCode||p.itemCode||p.code||'').trim()}
 function codeNorm(v){return txt(v).replace(/[^0-9A-Za-z]/g,'').toLowerCase()}
@@ -353,7 +349,7 @@ function addProduct(p){
          : 'NAME:'+norm(txt(p.name||p.productName||p.nama))+'|PRICE:'+price(p)));
  let i=cart.find(x=>x.productKey===key);
  if(i){if(i.qty>=available){alert('Qty tidak boleh melebihi stok tersedia.');return false}i.qty++}
- else cart.push({productKey:key,barcode:bc,sku:sku,name:txt(p.name||p.productName||p.nama),brand:brandOf(p),supplier:supplierOf(p),marginPercent:marginOf(p),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});
+ else cart.push({productKey:key,barcode:bc,sku:sku,name:txt(p.name||p.productName||p.nama),price:price(p),productDiscount:disc(p),manualDiscount:0,discountReason:'',qty:1});
  renderCart();
  return true;
 }
@@ -478,7 +474,7 @@ if($('payment').value==='DEBIT / CREDIT CARD'){
   if(!cardBrand)return alert('Pilih brand kartu.');
   if(!cardNumber)return alert('Masukkan nomor kartu atau minimal 4 digit terakhir.');
 }
-if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>{let c=calc(i),netLine=c.total,marginPct=num(i.marginPercent);let companyMargin=netLine*marginPct/100,supplierPayable=Math.max(0,netLine-companyMargin);return {...i,...c,netSales:netLine,marginPercent:marginPct,companyMargin,supplierPayable}});items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});let received=$('payment').value==='CASH'?num($('cash').value):total,change=$('payment').value==='CASH'?Math.max(0,received-total):0,transaction={id,receiptNo:id,date:now.toISOString().slice(0,10),timestamp:now.toISOString(),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,
+if(!confirm('Proses pembayaran '+rp(total)+'?'))return;let now=new Date(),id=nextReceiptNo(s,now),guide=selectedGuide(),items=cart.map(i=>({...i,...calc(i)}));items.forEach(i=>{let key=s.code+'|'+(i.sku.trim()||i.barcode.trim()),r=stocks.find(x=>txt(x.key)===key);if(!r){r={key,storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyOnHand:0};stocks.push(r)}r.qtyOnHand=(Number(r.qtyOnHand)||0)-i.qty;r.updatedAt=now.toISOString();moves.unshift({id:'MOV-'+Date.now()+Math.random(),date:now.toISOString().slice(0,10),type:'PENJUALAN',storeCode:s.code,storeName:s.name,sku:i.sku,barcode:i.barcode,qtyIn:0,qtyOut:i.qty,balanceAfter:r.qtyOnHand,referenceId:id,transactionNo:id,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',manualDiscount:i.manualDiscount,discountReason:i.discountReason})});let received=$('payment').value==='CASH'?num($('cash').value):total,change=$('payment').value==='CASH'?Math.max(0,received-total):0,transaction={id,receiptNo:id,date:now.toISOString().slice(0,10),timestamp:now.toISOString(),storeCode:s.code,storeName:s.name,guideNo:guide?guideNoOf(guide):'',guideName:guide?guideNameOf(guide):'',items,grandTotal:total,paymentMethod:$('payment').value,
 cardType:$('payment').value==='DEBIT / CREDIT CARD'?$('cardType').value:'',
 cardBrand:$('payment').value==='DEBIT / CREDIT CARD'?$('cardBrand').value:'',
 cardNumber:$('payment').value==='DEBIT / CREDIT CARD'?$('cardNumber').value.trim():'',
