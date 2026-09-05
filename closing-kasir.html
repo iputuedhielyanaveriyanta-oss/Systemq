@@ -1,12 +1,22 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SYSTEMQ - Closing Kasir</title>
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#1d2833}header{background:#17212b;color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}main{max-width:900px;margin:auto;padding:18px}.card{background:#fff;border:1px solid #dce3e8;border-radius:14px;padding:18px;margin-bottom:16px}h1{font-size:24px;margin:0 0 6px}p{color:#687582}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.denoms{display:grid;grid-template-columns:1fr 120px 140px;gap:8px;align-items:center}.denoms input,.grid input,.grid select{padding:12px;border:1px solid #cfd8df;border-radius:9px;font-size:16px;width:100%;box-sizing:border-box}.total{font-weight:bold}.btn{padding:14px 18px;border:0;border-radius:10px;background:#f58220;color:#fff;font-size:16px;font-weight:bold;width:100%;margin-top:14px}.hidden{display:none}.success{background:#eaf8ef;border:1px solid #b9e2c7;border-radius:12px;padding:16px}.note{background:#fff7e8;border:1px solid #f2d08a;padding:12px;border-radius:10px;font-size:14px}.sales{font-size:22px;font-weight:bold;margin-top:8px}@media(max-width:650px){.grid{grid-template-columns:1fr}.denoms{grid-template-columns:1fr 100px 100px}}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#1d2833}header{background:#17212b;color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}main{max-width:900px;margin:auto;padding:18px}.card{background:#fff;border:1px solid #dce3e8;border-radius:14px;padding:18px;margin-bottom:16px}h1{font-size:24px;margin:0 0 6px}p{color:#687582}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.denoms{display:grid;grid-template-columns:1fr 120px 140px;gap:10px;align-items:center;margin-bottom:12px}
+.denom-label{font-size:20px;font-weight:700;color:#1d2833}
+.denom-total{font-size:18px;font-weight:700;color:#1f6f43;background:#edf8f1;border:1px solid #b9dfc6;border-radius:9px;padding:12px;text-align:right}
+.denoms input,.grid input,.grid select{padding:12px;border:1px solid #cfd8df;border-radius:9px;font-size:16px;width:100%;box-sizing:border-box}
+.total{font-weight:bold}.btn{padding:14px 18px;border:0;border-radius:10px;background:#f58220;color:#fff;font-size:16px;font-weight:bold;width:100%;margin-top:14px}.hidden{display:none}.success{background:#eaf8ef;border:1px solid #b9e2c7;border-radius:12px;padding:16px}.note{background:#fff7e8;border:1px solid #f2d08a;padding:12px;border-radius:10px;font-size:14px}.sales{font-size:22px;font-weight:bold;margin-top:8px}@media(max-width:650px){.grid{grid-template-columns:1fr}.denoms{grid-template-columns:1fr 100px 100px}}
 </style></head><body>
 <header><b>SYSTEMQ</b><span>CLOSING KASIR</span></header><main>
 <div class="card"><h1>Closing Shift</h1><p>Hitung fisik terlebih dahulu. Angka sistem dan selisih tidak ditampilkan sebelum maupun sesudah submit.</p>
 <div class="grid"><div><label>Tanggal</label><input id="date" type="date"></div><div><label>Store</label><input id="store" placeholder="Store"></div><div><label>Shift</label><select id="shift"><option value="Shift 1">Shift 1</option><option value="Shift 2">Shift 2</option></select></div><div><label>Leader</label><input id="leader" placeholder="Nama leader"></div></div></div>
-<div class="card"><h2>Cash Count</h2><div id="denoms"></div><div class="total">TOTAL CASH FISIK: <span id="cashTotal">Rp0</span></div></div>
+<div class="card"><h2>Cash Count</h2>
+<div class="denoms" style="margin-bottom:6px">
+<div style="font-size:13px;font-weight:bold;color:#687582">PECAHAN</div>
+<div style="font-size:13px;font-weight:bold;color:#687582">JUMLAH LEMBAR</div>
+<div style="font-size:13px;font-weight:bold;color:#687582;text-align:right">TOTAL</div>
+</div>
+<div id="denoms"></div><div class="total">TOTAL CASH FISIK: <span id="cashTotal">Rp0</span></div></div>
 <div class="card"><h2>Non-Cash Aktual</h2><div class="grid"><div><label>Debit</label><input class="pay" data-k="Debit" type="number" min="0"></div><div><label>Credit</label><input class="pay" data-k="Credit" type="number" min="0"></div><div><label>QRIS</label><input class="pay" data-k="QRIS" type="number" min="0"></div><div><label>Transfer / Lainnya</label><input class="pay" data-k="Transfer" type="number" min="0"></div></div><div style="margin-top:12px"><label>Catatan</label><input id="note" placeholder="Catatan jika diperlukan"></div><button class="btn" onclick="submitClosing()">SUBMIT CLOSING</button></div>
 <div id="result" class="card hidden"></div>
 </main>
@@ -14,7 +24,7 @@ body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#1d2833}head
 const den=[100000,50000,20000,10000,5000,2000,1000];
 const d=document.getElementById('denoms');
 const fmt=n=>'Rp'+Number(n||0).toLocaleString('id-ID');
-d.innerHTML=den.map(x=>`<div>Rp${x.toLocaleString('id-ID')}</div><input type="number" min="0" value="0" data-den="${x}"><div id="t${x}">Rp0</div>`).join('');
+d.innerHTML=den.map(x=>`<div class="denom-label">Rp${x.toLocaleString('id-ID')}</div><input type="number" min="0" value="0" data-den="${x}"><div class="denom-total" id="t${x}">Rp0</div>`).join('');
 function calc(){let total=0;document.querySelectorAll('[data-den]').forEach(i=>{let v=(+i.value||0)*(+i.dataset.den);total+=v;document.getElementById('t'+i.dataset.den).textContent=fmt(v)});document.getElementById('cashTotal').textContent=fmt(total);return total}
 document.querySelectorAll('[data-den]').forEach(i=>i.addEventListener('input',calc));
 function tx(){try{return JSON.parse(localStorage.getItem('systemq_cashier_transactions_v1')||localStorage.getItem('systemq_cashier_sales_v1')||'[]')}catch(e){return[]}}
