@@ -25,7 +25,7 @@ header{background:#17212b;color:#fff;padding:16px 20px;display:flex;justify-cont
 <script>
 function goBack(){
   if(document.referrer && history.length > 1){ history.back(); }
-  else { window.location.href='./index-systemq-cashier-closing.html'; }
+  else { window.location.href='./index.html'; }
 }
 const den=[100000,50000,20000,10000,5000,2000,1000];
 const d=document.getElementById('denoms');
@@ -34,7 +34,49 @@ d.innerHTML=den.map(x=>`<div class="denom-label">Rp${x.toLocaleString('id-ID')}<
 function calc(){let total=0;document.querySelectorAll('[data-den]').forEach(i=>{let v=(+i.value||0)*(+i.dataset.den);total+=v;document.getElementById('t'+i.dataset.den).textContent=fmt(v)});document.getElementById('cashTotal').textContent=fmt(total);return total}
 document.querySelectorAll('[data-den]').forEach(i=>i.addEventListener('input',calc));
 function tx(){try{return JSON.parse(localStorage.getItem('systemq_cashier_transactions_v1')||localStorage.getItem('systemq_cashier_sales_v1')||'[]')}catch(e){return[]}}
-function shiftSales(date,store,shift){let a=tx();return a.filter(t=>{let dt=String(t.date||t.createdAt||t.timestamp||'').slice(0,10);let st=t.store||t.storeName||'';return dt===date&&(!store||String(st).toLowerCase()===store.toLowerCase())}).reduce((s,t)=>s+(+t.total||+t.net||+t.amount||0),0)}
+function shiftSales(date,store,shift){
+  let a=tx();
+  return a.filter(t=>{
+    let dt=String(t.date||t.createdAt||t.timestamp||'').slice(0,10);
+    let st=t.storeCode||t.store||t.storeName||'';
+    let ts=String(t.shift||'').trim();
+    return dt===date
+      && (!store||String(st).toLowerCase()===store.toLowerCase())
+      && ts===String(shift||'').trim();
+  }).reduce((s,t)=>s+(Number(t.grandTotal)||Number(t.total)||Number(t.net)||Number(t.amount)||0),0)
+}
 function submitClosing(){let date=document.getElementById('date').value,store=document.getElementById('store').value.trim(),shift=document.getElementById('shift').value,leader=document.getElementById('leader').value.trim();if(!date||!store||!leader){alert('Tanggal, Store dan Leader wajib diisi');return}let key='systemq_cashier_closing_v1',arr=[];try{arr=JSON.parse(localStorage.getItem(key)||'[]')}catch(e){}if(arr.some(x=>x.date===date&&x.store.toLowerCase()===store.toLowerCase()&&x.shift===shift)){alert('Closing untuk Store, Tanggal dan Shift ini sudah pernah dikirim dan terkunci.');return}let payments={Cash:calc()};document.querySelectorAll('.pay').forEach(i=>payments[i.dataset.k]=+i.value||0);let rec={id:'CLS-'+Date.now(),date,store,shift,leader,payments,note:document.getElementById('note').value,submittedAt:new Date().toISOString()};arr.push(rec);localStorage.setItem(key,JSON.stringify(arr));let sales=shiftSales(date,store,shift);let r=document.getElementById('result');r.classList.remove('hidden');r.innerHTML=`<div class="success"><b>✓ CLOSING BERHASIL DIKIRIM</b><br><br>Store: ${store}<br>${shift}<br>Leader: ${leader}<div class="sales">Total Penjualan Shift: ${fmt(sales)}</div><p>Perbandingan fisik vs sistem dan selisih hanya dapat dilihat Staff Finance/Office.</p></div>`;document.querySelectorAll('input,select,.btn').forEach(x=>x.disabled=true)}
 document.getElementById('date').value=new Date().toISOString().slice(0,10);
-</script></body></html>
+</script>
+<!-- SYSTEMQ CLOUD LIVE SYNC -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+'use strict';
+var SYSTEMQ_SUPABASE_URL='https://jyqheupnegdrdbtpojhl.supabase.co';
+var SYSTEMQ_SUPABASE_KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
+var SYSTEMQ_KEYS=[
+ 'systemq_v17_data',
+ 'systemq_inventory_goods_receiving_v1',
+ 'systemq_inventory_stock_v1',
+ 'systemq_inventory_stock_movement_v1',
+ 'systemq_cashier_sales_v1',
+ 'systemq_cashier_transactions_v1',
+ 'systemq_customer_database_v1',
+ 'systemq_cashier_closing_v1',
+ 'systemq_finance_entries_v1',
+ 'systemq_finance_accounts_v1',
+ 'systemq_supplier_payments_v1'
+];
+var sb=null, ready=false, applying=false, timer=null;
+function snapshot(){var data={};SYSTEMQ_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v!==null)data[k]=v;});return data;}
+function apply(payload){if(!payload||typeof payload!=='object')return;applying=true;SYSTEMQ_KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(payload,k))localStorage.setItem(k,String(payload[k]));else localStorage.removeItem(k);});applying=false;}
+async function pull(){if(!sb)return false;var r=await sb.from('systemq_sync').select('payload').eq('sync_key','global').maybeSingle();if(r.error)throw r.error;if(r.data&&r.data.payload){apply(r.data.payload);return true;}return false;}
+async function push(){if(!sb||applying)return;var payload=snapshot();var r=await sb.from('systemq_sync').upsert({sync_key:'global',payload:payload,updated_at:new Date().toISOString()},{onConflict:'sync_key'});if(r.error)console.warn('SYSTEMQ cloud sync:',r.error.message);}
+function queuePush(){if(applying)return;clearTimeout(timer);timer=setTimeout(function(){push().catch(function(e){console.warn(e);});},350);}
+async function boot(){if(!window.supabase||!window.supabase.createClient)return;sb=window.supabase.createClient(SYSTEMQ_SUPABASE_URL,SYSTEMQ_SUPABASE_KEY);try{var hasCloud=await pull();if(!hasCloud)await push();else if(sessionStorage.getItem('systemq_cloud_boot')!=='1'){sessionStorage.setItem('systemq_cloud_boot','1');location.reload();return;}ready=true;var originalSet=localStorage.setItem.bind(localStorage),originalRemove=localStorage.removeItem.bind(localStorage);localStorage.setItem=function(k,v){originalSet(k,v);if(SYSTEMQ_KEYS.indexOf(k)!==-1)queuePush();};localStorage.removeItem=function(k){originalRemove(k);if(SYSTEMQ_KEYS.indexOf(k)!==-1)queuePush();};sb.channel('systemq-live-sync').on('postgres_changes',{event:'*',schema:'public',table:'systemq_sync',filter:'sync_key=eq.global'},function(payload){if(!ready)return;var row=payload.new&&payload.new.payload?payload.new:payload.old;if(row&&row.payload){apply(row.payload);window.dispatchEvent(new Event('systemq-cloud-sync'));}}).subscribe();window.dispatchEvent(new Event('systemq-cloud-ready'));}catch(e){console.warn('SYSTEMQ berjalan offline/local:',e&&e.message?e.message:e);}}
+boot();
+})();
+</script>
+
+</body></html>

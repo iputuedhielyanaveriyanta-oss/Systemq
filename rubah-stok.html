@@ -284,7 +284,10 @@ function post(){
   });
   var after=before+(direction==='IN'?qty:-qty);
   if(existing){
-    if('qty' in existing || !('stock' in existing))existing.qty=after;
+    /* SYSTEMQ memakai qtyOnHand sebagai saldo stok utama.
+       Field lama tetap diperbarui untuk kompatibilitas data sebelumnya. */
+    existing.qtyOnHand=after;
+    if('qty' in existing)existing.qty=after;
     if('stock' in existing)existing.stock=after;
     if('balance' in existing)existing.balance=after;
     existing.updatedAt=now;
@@ -292,7 +295,7 @@ function post(){
     stockRows.push({
       storeCode:store.code,storeName:store.name,
       barcode:productBarcode(selected),sku:productSku(selected),
-      qty:after,updatedAt:now
+      qtyOnHand:after,qty:after,updatedAt:now
     });
   }
   localStorage.setItem(STOCK_KEY,JSON.stringify(stockRows));
@@ -370,7 +373,13 @@ var SYSTEMQ_KEYS=[
  'systemq_inventory_goods_receiving_v1',
  'systemq_inventory_stock_v1',
  'systemq_inventory_stock_movement_v1',
- 'systemq_cashier_sales_v1'
+ 'systemq_cashier_sales_v1',
+ 'systemq_cashier_transactions_v1',
+ 'systemq_customer_database_v1',
+ 'systemq_cashier_closing_v1',
+ 'systemq_finance_entries_v1',
+ 'systemq_finance_accounts_v1',
+ 'systemq_supplier_payments_v1'
 ];
 var sb=null, ready=false, applying=false, timer=null;
 
