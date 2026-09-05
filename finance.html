@@ -18,7 +18,8 @@
 <section id="ledger" class="view"><div class="panel"><div class="toolbar"><select id="ledgerAccount"><option value="">Semua Account</option></select><button onclick="renderLedger()">Terapkan</button></div><div id="ledgerSummary"></div><div class="tableWrap"><table><thead><tr><th>TANGGAL</th><th>ACCOUNT</th><th>DESCRIPTION</th><th>DEBIT</th><th>CREDIT</th></tr></thead><tbody id="ledgerRows"></tbody></table></div></div></section>
 <section id="trial" class="view"><div class="panel"><h2>Trial Balance</h2><div class="muted">Gabungan perusahaan atau per Store mengikuti filter utama.</div><div class="tableWrap"><table><thead><tr><th>ACCOUNT</th><th>DEBIT</th><th>CREDIT</th></tr></thead><tbody id="trialRows"></tbody><tfoot id="trialTotals"></tfoot></table></div></div></section>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
 /* SYSTEMQ Supplier Invoice & Payment Control */
 const SUPPLIER_INVOICES_KEY='systemq_supplier_invoices_v1';
 function invoiceRows(){return read(SUPPLIER_INVOICES_KEY)||[]}
@@ -31,7 +32,6 @@ function selectInvoice(id){$('payInvoice').value=id;document.getElementById('pay
 function saveInvoicePayment(){let id=$('payInvoice').value, inv=invoiceRows().find(x=>x.id===id), amount=num($('payAmount').value),date=$('payDate').value;if(!inv||!amount||!date){alert('Invoice, tanggal dan nominal wajib diisi.');return}let st=invoiceStatus(inv);if(st.status==='PAID'){alert('Invoice sudah PAID. Sistem mengunci pembayaran tambahan untuk mencegah double payment.');return}if(amount>st.bal+0.009){alert('Nominal melebihi sisa invoice. Sisa: '+money(st.bal));return}let a=supplierPaymentRows();a.unshift({id:'SUPPAY-'+Date.now(),invoiceId:inv.id,supplier:inv.supplier,date,amount,accountId:$('payAccount').value,note:$('payNote').value.trim(),createdAt:new Date().toISOString()});write(SUPPLIER_PAYMENTS_KEY,a);$('payAmount').value='';$('payNote').value='';renderInvoiceCenter();refreshAll();alert('Pembayaran tersimpan. Status invoice diperbarui otomatis.');}
 function renderPaymentHistory(){let id=$('payInvoice')?.value, all=supplierPaymentRows().filter(p=>!id||p.invoiceId===id);$('paymentHistory').innerHTML=all.length?'<h3>Riwayat Pembayaran</h3><div class="tableWrap"><table><thead><tr><th>TANGGAL</th><th>SUPPLIER</th><th>INVOICE</th><th>NOMINAL</th><th>CATATAN</th></tr></thead><tbody>'+all.map(p=>{let inv=invoiceRows().find(x=>x.id===p.invoiceId);return `<tr><td>${p.date||'-'}</td><td>${p.supplier||'-'}</td><td>${inv?inv.invoiceNo:'Legacy / Tanpa Invoice'}</td><td>${money(p.amount)}</td><td>${p.note||'-'}</td></tr>`}).join('')+'</tbody></table></div>':'<div class="empty">Belum ada pembayaran untuk invoice ini.</div>'}
 
-</script><script>
 const MASTER='systemq_v17_data',
 TRX='systemq_cashier_transactions_v1',
 ENTRIES='systemq_finance_entries_v1',
@@ -279,4 +279,174 @@ function saveInvoicePayment(){let id=$('payInvoice').value, inv=invoiceRows().fi
 function renderPaymentHistory(){let id=$('payInvoice')?.value, all=supplierPaymentRows().filter(p=>!id||p.invoiceId===id);$('paymentHistory').innerHTML=all.length?'<h3>Riwayat Pembayaran</h3><div class="tableWrap"><table><thead><tr><th>TANGGAL</th><th>SUPPLIER</th><th>INVOICE</th><th>NOMINAL</th><th>CATATAN</th></tr></thead><tbody>'+all.map(p=>{let inv=invoiceRows().find(x=>x.id===p.invoiceId);return `<tr><td>${p.date||'-'}</td><td>${p.supplier||'-'}</td><td>${inv?inv.invoiceNo:'Legacy / Tanpa Invoice'}</td><td>${money(p.amount)}</td><td>${p.note||'-'}</td></tr>`}).join('')+'</tbody></table></div>':'<div class="empty">Belum ada pembayaran untuk invoice ini.</div>'}
 
 </script>
+
+<style id="systemq-button-fix">
+/* FINAL MOBILE BUTTON FIX */
+.tabs button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.panel.systemq-clickable{cursor:pointer;position:relative}
+.panel.systemq-clickable:active{transform:scale(.995)}
+.panel.systemq-clickable .systemq-open-hint{float:right;font-size:11px;color:#65717c;font-weight:normal}
+</style>
+<script id="systemq-button-fix-script">
+(function(){
+  'use strict';
+  function byId(id){ return document.getElementById(id); }
+  function activateTab(tabId){
+    var target=byId(tabId);
+    if(!target) return false;
+    document.querySelectorAll('.tabs button').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.tab===tabId);
+    });
+    document.querySelectorAll('.view').forEach(function(view){
+      view.classList.toggle('active', view.id===tabId);
+    });
+    try { target.scrollIntoView({behavior:'smooth',block:'start'}); } catch(e) { target.scrollIntoView(); }
+    return true;
+  }
+  function bindTabs(){
+    document.querySelectorAll('.tabs button[data-tab]').forEach(function(btn){
+      btn.type='button';
+      btn.onclick=function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        activateTab(btn.dataset.tab);
+      };
+      btn.addEventListener('touchend',function(ev){
+        ev.preventDefault();
+        activateTab(btn.dataset.tab);
+      },{passive:false});
+    });
+  }
+  function makePanelClickable(selector, tabId, label){
+    var panel=document.querySelector(selector);
+    if(!panel || panel.dataset.systemqBound==='1') return;
+    panel.dataset.systemqBound='1';
+    panel.classList.add('systemq-clickable');
+    panel.setAttribute('role','button');
+    panel.setAttribute('tabindex','0');
+    panel.setAttribute('aria-label',label);
+    var h=panel.querySelector('h2');
+    if(h && !h.querySelector('.systemq-open-hint')){
+      var hint=document.createElement('span');
+      hint.className='systemq-open-hint';
+      hint.textContent='Buka ›';
+      h.appendChild(hint);
+    }
+    function open(){ activateTab(tabId); }
+    panel.addEventListener('click',open);
+    panel.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){e.preventDefault();open();} });
+  }
+  function bindOverviewPanels(){
+    makePanelClickable('#overview .grid .panel:nth-child(1)','pl','Buka Profit and Loss');
+    makePanelClickable('#overview .grid .panel:nth-child(2)','cash','Buka Cash and Bank');
+    makePanelClickable('#overview .panel[style*="margin-top:12px"]:nth-of-type(1)','settlement','Buka Supplier Settlement');
+    var panels=byId('overview') ? byId('overview').querySelectorAll('.panel') : [];
+    if(panels.length>=4){ makePanelClickable('#overview .panel:nth-last-of-type(1)','payable','Buka Supplier Invoice and Payment'); }
+  }
+  function boot(){ bindTabs(); bindOverviewPanels(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+  window.systemqActivateTab=activateTab;
+})();
+</script>
+
+
+<script id="systemq-overview-safe-fix">
+(function(){
+  'use strict';
+  function el(id){return document.getElementById(id)}
+  function n(v){var x=Number(v);return Number.isFinite(x)?x:0}
+  function fmt(v){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n(v))}
+  function arr(key){try{var x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+  function obj(key){try{var x=JSON.parse(localStorage.getItem(key)||'{}');return x&&typeof x==='object'?x:{}}catch(e){return {}}}
+  function dateVal(x){return String(x||'').slice(0,10)}
+  function option(id){var x=el(id);return x?String(x.value||''):''}
+  function walkProducts(v,out){
+    if(Array.isArray(v)){v.forEach(function(x){walkProducts(x,out)});return}
+    if(!v||typeof v!=='object')return;
+    var sku=v.sku||v.SKU||v.barcode||v.BARCODE;
+    if(sku)out[String(sku)]=v;
+    Object.keys(v).forEach(function(k){if(v[k]&&typeof v[k]==='object')walkProducts(v[k],out)})
+  }
+  function products(){var out={};walkProducts(obj('systemq_v17_data'),out);return out}
+  function txItems(t){return Array.isArray(t&&t.items)?t.items:(Array.isArray(t&&t.cart)?t.cart:[])}
+  function pct(item,p){
+    var direct=item&&[item.discountPct,item.discountPercent,item.discount,item.discount_percentage].find(function(v){return v!==undefined&&v!==null&&v!==''});
+    var x=n(direct); if(x>0&&x<=1)x*=100;
+    if(!x){var base=n(item&&[item.regPrice,item.originalPrice,item.priceBeforeDiscount,item.price].find(function(v){return n(v)>0}));var sale=n(item&&(item.unitPrice||item.price||item.finalPrice));if(base>sale&&base>0)x=(base-sale)/base*100}
+    return x;
+  }
+  function line(item,p){
+    var q=n(item&& (item.qty||item.quantity||1))||1;
+    var unit=n(item&&(item.finalPrice||item.unitPrice||item.price||item.sellPrice));
+    var baseUnit=n(item&&(item.regPrice||item.originalPrice||item.priceBeforeDiscount))||unit;
+    var base=n(item&&(item.lineGross||item.gross))||baseUnit*q;
+    var discount=n(item&&(item.discountAmount||item.discountValue));
+    var net=n(item&&(item.lineTotal||item.total||item.subtotal||item.net));
+    if(!net){net=Math.max(0,unit*q-discount);if(!net&&base)net=base-discount}
+    if(!discount&&base>net)discount=base-net;
+    var mp=n(item&&(item.companyMarginPct||item.marginPct||item.marginPercent||item.margin));
+    if(!mp)mp=n(p&&(p.companyMarginPct||p.marginPct||p.marginPercent||p.margin));
+    if(mp>0&&mp<=1)mp*=100;
+    var cm=item&&item.companyMargin!==undefined?n(item.companyMargin):net*mp/100;
+    var sp=item&&item.supplierPayable!==undefined?n(item.supplierPayable):Math.max(0,net-cm);
+    return {q:q,base:base,discount:discount,net:net,marginPct:mp,margin:cm,payable:sp};
+  }
+  function data(){
+    var from=option('from'),to=option('to'),store=option('store'),supF=option('supplierFilter'),brandF=option('brandFilter'),discF=option('discountFilter');
+    var idx=products(),tx=arr('systemq_cashier_transactions_v1'),rows=[],gross=0,disc=0,net=0,margin=0,payable=0;
+    tx.forEach(function(t){
+      var d=dateVal(t.date||t.createdAt),st=String(t.storeCode||t.store||t.storeName||'');
+      if((from&&d<from)||(to&&d>to)||(store&&st!==store)||String(t.status||'PAID').toUpperCase()==='VOID')return;
+      txItems(t).forEach(function(i){
+        var sku=String(i.sku||i.SKU||i.barcode||i.BARCODE||''),p=idx[sku]||{};
+        var sup=String(i.supplier||i.supplierName||p.supplier||p.supplierName||p.supplierCode||'').trim();
+        var brand=String(i.brand||p.brand||p.BRAND||'').trim();
+        var dp=pct(i,p);
+        if(supF&&sup!==supF)return;if(brandF&&brand!==brandF)return;if(discF!==''&&Math.abs(dp-n(discF))>.01)return;
+        var v=line(i,p);gross+=v.base;disc+=v.discount;net+=v.net;margin+=v.margin;payable+=v.payable;
+        rows.push({supplier:sup||'-',brand:brand||'-',discount:dp,net:v.net,margin:v.margin,payable:v.payable});
+      })
+    });
+    return {rows:rows,gross:gross,disc:disc,net:net,margin:margin,payable:payable,tx:tx};
+  }
+  function renderSafe(){
+    try{
+      var d=data(), from=option('from'),to=option('to'),store=option('store'),scope=option('scope');
+      var entries=arr('systemq_finance_entries_v1').filter(function(x){var xs=String(x.storeCode||x.store||''),sc=String(x.scope||'STORE').toUpperCase();return (!from||String(x.date||'')>=from)&&(!to||String(x.date||'')<=to)&&(scope==='ALL'||(scope==='HO'?sc==='HO':sc==='STORE'))&&(!store||xs===store)});
+      var income=entries.filter(function(x){return String(x.type).toUpperCase()==='INCOME'}).reduce(function(a,x){return a+n(x.amount)},0);
+      var expense=entries.filter(function(x){return String(x.type).toUpperCase()==='EXPENSE'}).reduce(function(a,x){return a+n(x.amount)},0);
+      var result=d.margin+income-expense;
+      if(el('kSales'))el('kSales').textContent=fmt(d.net);
+      if(el('kHpp'))el('kHpp').textContent=fmt(d.payable);
+      if(el('kGross'))el('kGross').textContent=fmt(d.margin);
+      if(el('kExp'))el('kExp').textContent=fmt(expense);
+      if(el('kNet'))el('kNet').textContent=fmt(result);
+      if(el('kHppNote'))el('kHppNote').textContent=d.net?'Hak supplier '+Math.round(d.payable/d.net*100)+'%':'Belum ada penjualan';
+      if(el('summaryRows'))el('summaryRows').innerHTML='<div class="row"><span>Gross Sales</span><b>'+fmt(d.gross)+'</b></div><div class="row"><span>Discount</span><b class="bad">- '+fmt(d.disc)+'</b></div><div class="row"><span>Net Sales</span><b>'+fmt(d.net)+'</b></div><div class="row"><span>Hak Supplier / Utang</span><b class="bad">- '+fmt(d.payable)+'</b></div><div class="row"><span><b>Margin Perusahaan</b></span><b class="good">'+fmt(d.margin)+' ('+(d.net?Math.round(d.margin/d.net*10000)/100:0)+'%)</b></div><div class="row"><span>Other Income</span><b class="good">'+fmt(income)+'</b></div><div class="row"><span>Expense</span><b class="bad">- '+fmt(expense)+'</b></div><div class="row"><b>Net Result</b><b class="'+(result>=0?'good':'bad')+'">'+fmt(result)+'</b></div>';
+      var pay={};d.tx.forEach(function(t){var dd=dateVal(t.date||t.createdAt);if((from&&dd<from)||(to&&dd>to))return;var st=String(t.storeCode||t.store||t.storeName||'');if(store&&st!==store)return;var k=t.paymentMethod||t.payment||'OTHER';pay[k]=(pay[k]||0)+n(t.grandTotal||t.total||t.netTotal)});
+      if(el('paymentRows'))el('paymentRows').innerHTML=Object.keys(pay).length?Object.keys(pay).map(function(k){return '<div class="row"><span>'+k+'</span><b>'+fmt(pay[k])+'</b></div>'}).join(''):'<div class="empty">Belum ada transaksi.</div>';
+      var by={};d.rows.forEach(function(r){var k=r.supplier+'|'+r.brand;if(!by[k])by[k]={supplier:r.supplier,brand:r.brand,sales:0,margin:0,payable:0};by[k].sales+=r.net;by[k].margin+=r.margin;by[k].payable+=r.payable});
+      var list=Object.values(by).sort(function(a,b){return b.sales-a.sales});
+      if(el('supplierBrandSummary'))el('supplierBrandSummary').innerHTML=list.length?'<div class="tableWrap"><table><thead><tr><th>SUPPLIER</th><th>BRAND</th><th>NET SALES</th><th>MARGIN</th><th>MARGIN %</th><th>HAK SUPPLIER</th></tr></thead><tbody>'+list.map(function(r){return '<tr><td>'+r.supplier+'</td><td>'+r.brand+'</td><td>'+fmt(r.sales)+'</td><td class="good"><b>'+fmt(r.margin)+'</b></td><td>'+(r.sales?Math.round(r.margin/r.sales*10000)/100:0)+'%</td><td>'+fmt(r.payable)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="empty">Tidak ada penjualan sesuai filter.</div>';
+      var notes=[];if(!d.rows.length)notes.push('Belum ada transaksi sesuai filter aktif.');if(!arr('systemq_finance_accounts_v1').length)notes.push('Belum ada Cash & Bank Account. Tambahkan account untuk pencatatan pembayaran.');
+      if(el('alerts'))el('alerts').innerHTML=notes.length?notes.map(function(x){return '<div class="row"><span>⚠ '+x+'</span></div>'}).join(''):'<div class="row"><span class="good">✓ Data Finance terbaca dan siap dianalisis.</span></div>';
+    }catch(err){console.warn('SYSTEMQ overview safe render:',err)}
+  }
+  function activate(id){document.querySelectorAll('.tabs button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-tab')===id)});document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('active',v.id===id)});window.scrollTo({top:0,behavior:'smooth'})}
+  function boot(){
+    var old=window.refreshAll;
+    window.refreshAll=function(){try{if(typeof old==='function')old()}catch(e){console.warn(e)}renderSafe()};
+    renderSafe();setTimeout(renderSafe,400);setTimeout(renderSafe,1500);
+    ['from','to','scope','store','supplierFilter','brandFilter','discountFilter'].forEach(function(id){var x=el(id);if(x)x.addEventListener('change',function(){setTimeout(renderSafe,0)})});
+    var panels=document.querySelectorAll('#overview .panel');
+    if(panels[0])panels[0].addEventListener('click',function(){activate('pl')});
+    if(panels[1])panels[1].addEventListener('click',function(){activate('cash')});
+    if(panels[2])panels[2].addEventListener('click',function(){activate('settlement')});
+    if(panels[3])panels[3].addEventListener('click',function(){activate('payable')});
+    Array.from(panels).forEach(function(p){p.style.cursor='pointer'});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
+
 </body></html>
