@@ -23,19 +23,7 @@
 'use strict';
 var SYSTEMQ_SUPABASE_URL='https://jyqheupnegdrdbtpojhl.supabase.co';
 var SYSTEMQ_SUPABASE_KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
-var SYSTEMQ_KEYS=[
- 'systemq_v17_data',
- 'systemq_inventory_goods_receiving_v1',
- 'systemq_inventory_stock_v1',
- 'systemq_inventory_stock_movement_v1',
- 'systemq_cashier_sales_v1',
- 'systemq_cashier_transactions_v1',
- 'systemq_customer_database_v1',
- 'systemq_cashier_closing_v1',
- 'systemq_finance_entries_v1',
- 'systemq_finance_accounts_v1',
- 'systemq_supplier_payments_v1'
-];
+var SYSTEMQ_KEYS=['systemq_v17_data','systemq_inventory_goods_receiving_v1','systemq_inventory_stock_v1','systemq_inventory_stock_movement_v1','systemq_cashier_sales_v1','systemq_cashier_transactions_v1','systemq_customer_database_v1','systemq_cashier_closing_v1','systemq_finance_entries_v1','systemq_finance_accounts_v1','systemq_inventory_costs_v1','systemq_finance_closings_v1','systemq_supplier_payments_v1','systemq_supplier_invoices_v1','systemq_accounting_journals_v1'];
 var sb=null, ready=false, applying=false, timer=null;
 
 function snapshot(){
