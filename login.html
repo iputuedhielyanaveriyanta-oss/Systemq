@@ -45,12 +45,6 @@ try{
 client.auth.getSession().then(function(r){if(r.data&&r.data.session)location.replace('./'+next());});
 var OWNER_EMAIL='owner@systemq.com';
 var OWNER_PASSWORD='@systemq';
-
-  document.getElementById('email').value=OWNER_EMAIL;
-  document.getElementById('password').value=OWNER_PASSWORD;
-  show('Silakan masuk menggunakan akun SYSTEMQ Anda.','ok');
-  document.getElementById('password').focus();
-});
 document.getElementById('loginForm').addEventListener('submit',async function(e){
   e.preventDefault();msg.className='msg';btn.disabled=true;btn.textContent='MEMPROSES...';
   var email=document.getElementById('email').value.trim().toLowerCase(),password=document.getElementById('password').value;
