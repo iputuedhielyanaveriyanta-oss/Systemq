@@ -35,18 +35,19 @@ function calc(){let total=0;document.querySelectorAll('[data-den]').forEach(i=>{
 document.querySelectorAll('[data-den]').forEach(i=>i.addEventListener('input',calc));
 function tx(){try{return JSON.parse(localStorage.getItem('systemq_cashier_transactions_v1')||localStorage.getItem('systemq_cashier_sales_v1')||'[]')}catch(e){return[]}}
 function shiftSales(date,store,shift){
-  let wanted=String(store||'').trim().toLowerCase();
-  return tx().filter(t=>{
+  let a=tx();
+  return a.filter(t=>{
     let dt=String(t.date||t.createdAt||t.timestamp||'').slice(0,10);
-    let st=[t.storeCode,t.store,t.storeName].map(v=>String(v||'').trim().toLowerCase());
-    let ts=String(t.shift||'Shift 1').trim();
-    return dt===date && (!wanted||st.includes(wanted)) && ts===String(shift||'').trim() && String(t.status||'PAID').toUpperCase()==='PAID';
-  }).reduce((sum,t)=>sum+(Number(t.grandTotal)||Number(t.total)||Number(t.net)||Number(t.amount)||0),0)
+    let st=t.storeCode||t.store||t.storeName||'';
+    let ts=String(t.shift||'').trim();
+    return dt===date
+      && (!store||String(st).toLowerCase()===store.toLowerCase())
+      && ts===String(shift||'').trim();
+  }).reduce((s,t)=>s+(Number(t.grandTotal)||Number(t.total)||Number(t.net)||Number(t.amount)||0),0)
 }
-function systemPayments(date,store,shift){let out={Cash:0,Debit:0,Credit:0,QRIS:0,Transfer:0};let wanted=String(store||'').trim().toLowerCase();tx().filter(t=>{let dt=String(t.date||t.createdAt||t.timestamp||'').slice(0,10),st=[t.storeCode,t.store,t.storeName].map(v=>String(v||'').trim().toLowerCase()),ts=String(t.shift||'Shift 1').trim();return dt===date&&(!wanted||st.includes(wanted))&&ts===String(shift||'').trim()&&String(t.status||'PAID').toUpperCase()==='PAID'}).forEach(t=>{let amt=Number(t.grandTotal)||0,m=String(t.paymentMethod||'').toUpperCase();if(m==='CASH')out.Cash+=amt;else if(m==='QRIS')out.QRIS+=amt;else if(m==='TRANSFER')out.Transfer+=amt;else if(m.includes('CARD')){let ct=String(t.cardType||'').toUpperCase();out[ct==='CREDIT CARD'?'Credit':'Debit']+=amt}else out.Transfer+=amt});return out}
-function activeStoreForClosing(){try{let a=JSON.parse(localStorage.getItem('systemq_inventory_goods_receiving_v1')||'[]').filter(x=>String(x.status||'').toUpperCase()==='POSTED');a.sort((x,y)=>String(y.postedAt||y.updatedAt||'').localeCompare(String(x.postedAt||x.updatedAt||'')));if(a[0])return String(a[0].storeCode||a[0].storeName||'')}catch(e){}try{let a=JSON.parse(localStorage.getItem('systemq_inventory_stock_v1')||'[]');a.sort((x,y)=>String(y.updatedAt||'').localeCompare(String(x.updatedAt||'')));if(a[0])return String(a[0].storeCode||a[0].storeName||'')}catch(e){}return ''}
-function submitClosing(){let date=document.getElementById('date').value,store=document.getElementById('store').value.trim(),shift=document.getElementById('shift').value,leader=document.getElementById('leader').value.trim();if(!date||!store||!leader){alert('Tanggal, Store dan Leader wajib diisi');return}let key='systemq_cashier_closing_v1',arr=[];try{arr=JSON.parse(localStorage.getItem(key)||'[]')}catch(e){}if(arr.some(x=>x.date===date&&x.store.toLowerCase()===store.toLowerCase()&&x.shift===shift)){alert('Closing untuk Store, Tanggal dan Shift ini sudah pernah dikirim dan terkunci.');return}let payments={Cash:calc()};document.querySelectorAll('.pay').forEach(i=>payments[i.dataset.k]=+i.value||0);let sales=shiftSales(date,store,shift),expected=systemPayments(date,store,shift);let rec={id:'CLS-'+Date.now(),date,store,shift,leader,payments,note:document.getElementById('note').value,systemSales:sales,systemPayments:expected,status:'FINAL',submittedAt:new Date().toISOString()};arr.push(rec);localStorage.setItem(key,JSON.stringify(arr));let r=document.getElementById('result');r.classList.remove('hidden');r.innerHTML=`<div class="success"><b>✓ CLOSING BERHASIL DIKIRIM</b><br><br>Store: ${store}<br>${shift}<br>Leader: ${leader}<div class="sales">Total Penjualan Shift: ${fmt(sales)}</div><p>Perbandingan fisik vs sistem dan selisih hanya dapat dilihat Staff Finance/Office.</p></div>`;document.querySelectorAll('input,select,.btn').forEach(x=>x.disabled=true)}
-document.getElementById('date').value=new Date().toISOString().slice(0,10);document.getElementById('store').value=activeStoreForClosing();
+function submitClosing(){let date=document.getElementById('date').value,store=document.getElementById('store').value.trim(),shift=document.getElementById('shift').value,leader=document.getElementById('leader').value.trim();if(!date||!store||!leader){alert('Tanggal, Store dan Leader wajib diisi');return}let key='systemq_cashier_closing_v1',arr=[];try{arr=JSON.parse(localStorage.getItem(key)||'[]')}catch(e){}if(arr.some(x=>x.date===date&&x.store.toLowerCase()===store.toLowerCase()&&x.shift===shift)){alert('Closing untuk Store, Tanggal dan Shift ini sudah pernah dikirim dan terkunci.');return}let payments={Cash:calc()};document.querySelectorAll('.pay').forEach(i=>payments[i.dataset.k]=+i.value||0);let rec={id:'CLS-'+Date.now(),date,store,shift,leader,payments,note:document.getElementById('note').value,submittedAt:new Date().toISOString()};arr.push(rec);localStorage.setItem(key,JSON.stringify(arr));let sales=shiftSales(date,store,shift);let r=document.getElementById('result');r.classList.remove('hidden');r.innerHTML=`<div class="success"><b>✓ CLOSING BERHASIL DIKIRIM</b><br><br>Store: ${store}<br>${shift}<br>Leader: ${leader}<div class="sales">Total Penjualan Shift: ${fmt(sales)}</div><p>Perbandingan fisik vs sistem dan selisih hanya dapat dilihat Staff Finance/Office.</p></div>`;document.querySelectorAll('input,select,.btn').forEach(x=>x.disabled=true)}
+function guidePayoutToday(){try{let d=document.getElementById('date').value||new Date().toISOString().slice(0,10);let a=JSON.parse(localStorage.getItem('systemq_guide_commission_payouts_v1')||'[]');let total=a.filter(x=>String(x.date||'').slice(0,10)===d).reduce((s,x)=>s+(Number(x.amount)||0),0);let el=document.getElementById('guidePayoutTotal');if(el)el.textContent='Pencairan Komisi Guide: - '+fmt(total);return total}catch(e){return 0}}
+document.getElementById('date').value=new Date().toISOString().slice(0,10);guidePayoutToday();document.getElementById('date').addEventListener('change',guidePayoutToday);
 </script>
 <!-- SYSTEMQ CLOUD LIVE SYNC -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -55,7 +56,20 @@ document.getElementById('date').value=new Date().toISOString().slice(0,10);docum
 'use strict';
 var SYSTEMQ_SUPABASE_URL='https://jyqheupnegdrdbtpojhl.supabase.co';
 var SYSTEMQ_SUPABASE_KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
-var SYSTEMQ_KEYS=['systemq_v17_data','systemq_inventory_goods_receiving_v1','systemq_inventory_stock_v1','systemq_inventory_stock_movement_v1','systemq_cashier_sales_v1','systemq_cashier_transactions_v1','systemq_customer_database_v1','systemq_cashier_closing_v1','systemq_finance_entries_v1','systemq_finance_accounts_v1','systemq_inventory_costs_v1','systemq_finance_closings_v1','systemq_supplier_payments_v1','systemq_supplier_invoices_v1','systemq_accounting_journals_v1'];
+var SYSTEMQ_KEYS=[
+ 'systemq_v17_data',
+ 'systemq_inventory_goods_receiving_v1',
+ 'systemq_inventory_stock_v1',
+ 'systemq_inventory_stock_movement_v1',
+ 'systemq_cashier_sales_v1',
+ 'systemq_cashier_transactions_v1',
+ 'systemq_customer_database_v1',
+ 'systemq_cashier_closing_v1',
+ 'systemq_finance_entries_v1',
+ 'systemq_finance_accounts_v1',
+ 'systemq_supplier_payments_v1',
+ 'systemq_guide_commission_payouts_v1'
+];
 var sb=null, ready=false, applying=false, timer=null;
 function snapshot(){var data={};SYSTEMQ_KEYS.forEach(function(k){var v=localStorage.getItem(k);if(v!==null)data[k]=v;});return data;}
 function apply(payload){if(!payload||typeof payload!=='object')return;applying=true;SYSTEMQ_KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(payload,k))localStorage.setItem(k,String(payload[k]));else localStorage.removeItem(k);});applying=false;}

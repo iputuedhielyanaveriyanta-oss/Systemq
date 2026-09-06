@@ -14,7 +14,7 @@
 <a class="cashier-card" href="./kasir.html"><b>POS KASIR</b><span>Penjualan, scan SKU, diskon, pembayaran dan transaksi kasir.</span></a>
 <a class="cashier-card" href="./closing-kasir.html"><b>CLOSING</b><span>Closing Shift 1 / Shift 2. Hitung fisik secara blind sebelum submit.</span></a>
 </div></section>
-<section id="report" class="hidden"><h1>LAPORAN</h1><p>Pusat laporan otomatis dari data Kasir, Inventory, Goods Receiving dan Stock Movement.</p><div class="inventory-menu"><a class="inventory-card" href="./laporan.html"><b>REPORTS DASHBOARD</b><span>Dashboard lengkap Sales, Product Performance, Inventory, Stock Movement, Goods Receiving, Adjustment, Payment, Discount, Cashier, Store dan Customer.</span></a></div></section><section id="finance" class="hidden"><h1>FINANCE & AKUNTING</h1><p>Pusat finance otomatis dari transaksi Kasir serta pencatatan pemasukan dan pengeluaran.</p><div class="inventory-menu"><a class="inventory-card" href="./finance.html"><b>FINANCE DASHBOARD</b><span>Cash & Bank, pemasukan, pengeluaran, ringkasan kas dan laporan keuangan otomatis.</span></a></div></section>
+<section id="report" class="hidden"><h1>LAPORAN</h1><p>Pusat laporan otomatis dari data Kasir, Inventory, Goods Receiving dan Stock Movement.</p><div class="inventory-menu"><a class="inventory-card" href="./laporan.html"><b>REPORTS DASHBOARD</b><span>Dashboard lengkap Sales, Product Performance, Inventory, Stock Movement, Goods Receiving, Adjustment, Payment, Discount, Cashier, Store, Customer dan Komisi Guide.</span></a></div></section><section id="finance" class="hidden"><h1>FINANCE & AKUNTING</h1><p>Pusat finance otomatis dari transaksi Kasir serta pencatatan pemasukan dan pengeluaran.</p><div class="inventory-menu"><a class="inventory-card" href="./finance.html"><b>FINANCE DASHBOARD</b><span>Cash & Bank, pemasukan, pengeluaran, ringkasan kas dan laporan keuangan otomatis.</span></a></div></section>
 </main><div id="modal" class="modal hidden"><div class="card"><button class="close" onclick="closeModal()">×</button><h2 id="modalTitle"></h2><form id="form" onsubmit="save(event)"></form></div></div><script>function inventoryComingSoon(name){alert(name+" akan kita kerjakan setelah modul Saldo Stok selesai.");}</script><script src="app.js"></script>
 <!-- SYSTEMQ CLOUD LIVE SYNC -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -23,7 +23,20 @@
 'use strict';
 var SYSTEMQ_SUPABASE_URL='https://jyqheupnegdrdbtpojhl.supabase.co';
 var SYSTEMQ_SUPABASE_KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
-var SYSTEMQ_KEYS=['systemq_v17_data','systemq_inventory_goods_receiving_v1','systemq_inventory_stock_v1','systemq_inventory_stock_movement_v1','systemq_cashier_sales_v1','systemq_cashier_transactions_v1','systemq_customer_database_v1','systemq_cashier_closing_v1','systemq_finance_entries_v1','systemq_finance_accounts_v1','systemq_inventory_costs_v1','systemq_finance_closings_v1','systemq_supplier_payments_v1','systemq_supplier_invoices_v1','systemq_accounting_journals_v1'];
+var SYSTEMQ_KEYS=[
+ 'systemq_v17_data',
+ 'systemq_inventory_goods_receiving_v1',
+ 'systemq_inventory_stock_v1',
+ 'systemq_inventory_stock_movement_v1',
+ 'systemq_cashier_sales_v1',
+ 'systemq_cashier_transactions_v1',
+ 'systemq_customer_database_v1',
+ 'systemq_cashier_closing_v1',
+ 'systemq_finance_entries_v1',
+ 'systemq_finance_accounts_v1',
+ 'systemq_supplier_payments_v1',
+ 'systemq_guide_commission_payouts_v1'
+];
 var sb=null, ready=false, applying=false, timer=null;
 
 function snapshot(){
