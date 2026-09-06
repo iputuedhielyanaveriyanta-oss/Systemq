@@ -35,6 +35,7 @@ th{background:#f7f8f9;font-size:10px}
 .empty{text-align:center;color:#75808a;padding:25px}
 @media(max-width:700px){main{padding:14px}.topbar{flex-direction:column;align-items:flex-start}.grid{grid-template-columns:1fr}.meta{grid-template-columns:1fr}.actions{flex-direction:column}.actions button{width:100%}}
 </style>
+<script src="./auth.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -138,7 +139,7 @@ th{background:#f7f8f9;font-size:10px}
 var MASTER_KEY='systemq_v17_data';
 var GR_KEY='systemq_inventory_goods_receiving_v1';
 var STOCK_KEY='systemq_inventory_stock_v1';
-var MOVEMENT_KEY='systemq_inventory_stock_movement_v1';
+var MOVEMENT_KEY='systemq_inventory_stock_movement_v1','systemq_pending_adjustments_v1','systemq_user_session_v1';
 
 var master={},docs=[],stockRows=[],movements=[],selected=null;
 
@@ -239,7 +240,7 @@ function adjustmentId(){
   return 'ADJ-'+new Date().toISOString().replace(/\D/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
 }
 
-function post(){
+function postOriginal(){
   load();selectProduct();
   var store=activeStore();
   var date=id('date').value,direction=id('direction').value,qty=Number(id('qty').value),reason=id('reason').value,note=text(id('note').value).trim();
@@ -368,7 +369,19 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 'use strict';
 var SYSTEMQ_SUPABASE_URL='https://jyqheupnegdrdbtpojhl.supabase.co';
 var SYSTEMQ_SUPABASE_KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
-var SYSTEMQ_KEYS=['systemq_v17_data','systemq_inventory_goods_receiving_v1','systemq_inventory_stock_v1','systemq_inventory_stock_movement_v1','systemq_cashier_sales_v1','systemq_cashier_transactions_v1','systemq_customer_database_v1','systemq_cashier_closing_v1','systemq_finance_entries_v1','systemq_finance_accounts_v1','systemq_inventory_costs_v1','systemq_finance_closings_v1','systemq_supplier_payments_v1','systemq_supplier_invoices_v1','systemq_accounting_journals_v1'];
+var SYSTEMQ_KEYS=[
+ 'systemq_v17_data',
+ 'systemq_inventory_goods_receiving_v1',
+ 'systemq_inventory_stock_v1',
+ 'systemq_inventory_stock_movement_v1',
+ 'systemq_cashier_sales_v1',
+ 'systemq_cashier_transactions_v1',
+ 'systemq_customer_database_v1',
+ 'systemq_cashier_closing_v1',
+ 'systemq_finance_entries_v1',
+ 'systemq_finance_accounts_v1',
+ 'systemq_supplier_payments_v1'
+];
 var sb=null, ready=false, applying=false, timer=null;
 
 function snapshot(){
@@ -465,5 +478,33 @@ window.addEventListener('systemq-cloud-sync',function(){
 });
 </script>
 
+
+<!-- SYSTEMQ ROLE & PERMISSION -->
+<script>
+(function(){
+const KEY='systemq_user_session_v1';
+function session(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}}}
+function role(){return String(session().role||'ADMIN').toUpperCase()}
+window.SYSTEMQ_ROLE={get:role,can:function(action){const r=role();const allow={ADMIN:['*'],FINANCE:['finance','approve_closing','approve_adjustment','report'],MANAGER:['approve_closing','approve_adjustment','report','cashier','inventory'],LEADER:['closing','cashier','inventory','report'],INVENTORY:['inventory'],CASHIER:['cashier']};let a=allow[r]||[];return a.includes('*')||a.includes(action)}};
+})();
+</script>
+
+<script>
+/* SYSTEMQ APPROVAL WORKFLOW - STOCK ADJUSTMENT */
+(function(){
+var originalPost=postOriginal;
+window.post=function(){
+ if(window.SYSTEMQ_ROLE && !SYSTEMQ_ROLE.can('inventory')){alert('Role Anda tidak memiliki akses membuat Stock Adjustment.');return;}
+ load();selectProduct();
+ var store=activeStore(),date=id('date').value,direction=id('direction').value,qty=Number(id('qty').value),reason=id('reason').value,note=text(id('note').value).trim();
+ if(!store.code||!date||!selected||(direction!=='IN'&&direction!=='OUT')||!Number.isInteger(qty)||qty<=0||!reason||note.length<10){return originalPost();}
+ var before=currentStock(store.code,selected); if(direction==='OUT'&&qty>before){alert('Adjustment OUT tidak dapat melebihi stok saat ini ('+before+' pcs).');return;}
+ var arr=[];try{arr=JSON.parse(localStorage.getItem('systemq_pending_adjustments_v1')||'[]')}catch(e){}
+ arr.unshift({id:adjustmentId(),status:'PENDING',date:date,createdAt:new Date().toISOString(),storeCode:store.code,storeName:store.name,barcode:productBarcode(selected),sku:productSku(selected),productName:productName(selected),direction:direction,qty:qty,reason:reason,note:note,requestedBy:(localStorage.getItem('systemq_user_session_v1')||''),beforeQty:before});
+ localStorage.setItem('systemq_pending_adjustments_v1',JSON.stringify(arr));
+ alert('Stock Adjustment dikirim ke Approval. Stok belum berubah sampai Manager/Finance menyetujui.');resetForm(false);renderHistory();
+ };
+})();
+</script>
 </body>
 </html>

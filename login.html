@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login • SYSTEMQ</title>
+<style>
+:root{--ink:#1b2530;--muted:#7a8792;--line:#dbe2e8;--accent:#f06a2f;--bg:#f3f5f7}*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Inter,Arial,sans-serif;background:radial-gradient(circle at top left,#fff 0,#f6f7f9 45%,#e9edf1 100%);color:var(--ink);display:grid;place-items:center;padding:22px}.shell{width:min(100%,440px)}.hero{text-align:center;margin-bottom:22px}.logo{font-size:46px;letter-spacing:5px;font-weight:900}.tag{margin:9px 0 0;font-size:14px;letter-spacing:2px;font-weight:800;color:#66737e}.sub{margin:7px 0 0;color:#88939c;font-size:12px;letter-spacing:1px}.card{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 24px 70px rgba(23,35,48,.12)}h1{margin:0 0 7px;font-size:25px}p{margin:0 0 22px;color:var(--muted);line-height:1.5}.field{margin:14px 0}.field label{display:block;font-size:11px;font-weight:900;letter-spacing:.8px;margin-bottom:7px;color:#59656f}.field input{width:100%;border:1px solid var(--line);border-radius:13px;padding:14px 15px;font:inherit;background:#fff;outline:none}.field input:focus{border-color:#9ba7b0;box-shadow:0 0 0 3px rgba(27,37,48,.07)}.btn{width:100%;border:0;border-radius:13px;padding:15px;background:var(--ink);color:#fff;font-weight:900;letter-spacing:.6px;cursor:pointer;margin-top:7px}.btn:disabled{opacity:.6;cursor:wait}.msg{display:none;margin:14px 0 0;padding:11px 12px;border-radius:10px;font-size:13px;line-height:1.4}.msg.error{display:block;background:#fff0ed;color:#a03e2e;border:1px solid #f2c9c1}.msg.ok{display:block;background:#eefaf1;color:#2c7245;border:1px solid #cce8d4}.reset{display:block;text-align:center;margin-top:16px;color:#66737e;font-size:12px;text-decoration:none;cursor:pointer}.credit{text-align:center;margin-top:18px;font-size:11px;letter-spacing:1px;color:#8b969f}.credit b{color:#56616b}@media(max-width:480px){body{padding:16px}.card{padding:24px 19px;border-radius:20px}.logo{font-size:40px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="hero">
+    <div class="logo">SYSTEMQ</div>
+    <div class="tag">ONE SYSTEM. TOTAL CONTROL.</div>
+    <div class="sub">RETAIL • INVENTORY • FINANCE</div>
+  </div>
+  <div class="card">
+    <h1>Selamat datang</h1>
+    <p>Masuk menggunakan akun SYSTEMQ Anda.</p>
+    <form id="loginForm">
+      <div class="field"><label>EMAIL / USER LOGIN</label><input id="email" type="email" autocomplete="username" required placeholder="nama@email.com"></div>
+      <div class="field"><label>PASSWORD</label><input id="password" type="password" autocomplete="current-password" required placeholder="Masukkan password"></div>
+      <button id="loginBtn" class="btn" type="submit">MASUK KE SYSTEMQ</button>
+    </form>
+    <div id="msg" class="msg"></div>
+    <a id="reset" class="reset">Lupa password?</a>
+  </div>
+  <div class="credit">SYSTEMQ <b>by EDSEAN</b></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+'use strict';
+var URL='https://jyqheupnegdrdbtpojhl.supabase.co';
+var KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
+var client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+var msg=document.getElementById('msg'),btn=document.getElementById('loginBtn');
+function show(text,type){msg.className='msg '+type;msg.textContent=text;}
+function next(){var n=new URLSearchParams(location.search).get('next');return n&&/^[a-z0-9_-]+\.html$/i.test(n)?n:'index.html';}
+client.auth.getSession().then(function(r){if(r.data&&r.data.session)location.replace('./'+next());});
+document.getElementById('loginForm').addEventListener('submit',async function(e){
+  e.preventDefault();msg.className='msg';btn.disabled=true;btn.textContent='MEMPROSES...';
+  var email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;
+  try{var r=await client.auth.signInWithPassword({email:email,password:password});if(r.error)throw r.error;location.replace('./'+next());}
+  catch(err){show(err&&err.message?err.message:'Login gagal. Periksa email dan password.','error');btn.disabled=false;btn.textContent='MASUK KE SYSTEMQ';}
+});
+document.getElementById('reset').addEventListener('click',async function(){
+  var email=document.getElementById('email').value.trim();
+  if(!email){show('Masukkan email terlebih dahulu untuk mengirim reset password.','error');return;}
+  try{var r=await client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname.replace(/login\.html$/,'login.html')});if(r.error)throw r.error;show('Email reset password telah dikirim.','ok');}
+  catch(err){show(err&&err.message?err.message:'Gagal mengirim reset password.','error');}
+});
+})();
+</script>
+</body>
+</html>

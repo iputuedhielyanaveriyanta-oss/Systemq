@@ -8,7 +8,8 @@ header{background:#17212b;color:#fff;padding:16px 20px;display:flex;justify-cont
 .denom-total{font-size:18px;font-weight:700;color:#1f6f43;background:#edf8f1;border:1px solid #b9dfc6;border-radius:9px;padding:12px;text-align:right}
 .denoms input,.grid input,.grid select{padding:12px;border:1px solid #cfd8df;border-radius:9px;font-size:16px;width:100%;box-sizing:border-box}
 .total{font-weight:bold}.btn{padding:14px 18px;border:0;border-radius:10px;background:#f58220;color:#fff;font-size:16px;font-weight:bold;width:100%;margin-top:14px}.hidden{display:none}.success{background:#eaf8ef;border:1px solid #b9e2c7;border-radius:12px;padding:16px}.note{background:#fff7e8;border:1px solid #f2d08a;padding:12px;border-radius:10px;font-size:14px}.sales{font-size:22px;font-weight:bold;margin-top:8px}@media(max-width:650px){.grid{grid-template-columns:1fr}.denoms{grid-template-columns:1fr 100px 100px}}
-</style></head><body>
+</style><script src="./auth.js"></script>
+</head><body>
 <header><button class="back-btn" onclick="goBack()">← Kembali</button><b>CLOSING KASIR</b></header><main>
 <div class="card"><h1>Closing Shift</h1><p>Hitung fisik terlebih dahulu. Angka sistem dan selisih tidak ditampilkan sebelum maupun sesudah submit.</p>
 <div class="grid"><div><label>Tanggal</label><input id="date" type="date"></div><div><label>Store</label><input id="store" placeholder="Store"></div><div><label>Shift</label><select id="shift"><option value="Shift 1">Shift 1</option><option value="Shift 2">Shift 2</option></select></div><div><label>Leader</label><input id="leader" placeholder="Nama leader"></div></div></div>
