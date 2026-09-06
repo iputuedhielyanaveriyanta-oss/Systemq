@@ -40,7 +40,7 @@ input,select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccd
 
   <div class="card">
     <table>
-      <thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Status</th><th class="hide-mobile">Dibuat</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>Nama</th><th>Kode Store</th><th>Role</th><th>Status</th><th class="hide-mobile">Dibuat</th><th>Aksi</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
@@ -51,7 +51,7 @@ input,select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccd
     <h2 id="mt">Tambah User</h2>
     <div class="grid">
       <label>Nama<input id="name"></label>
-      <label>Email<input id="email" type="email"></label>
+      <label>Kode Store<select id="storeCode"><option value="">-- PILIH KODE STORE --</option></select></label>
       <label id="passwordWrap">Password<input id="password" type="password" minlength="6" placeholder="Minimal 6 karakter"></label>
       <label>Role<select id="role">
         <option>STAFF</option><option>LEADER</option><option>CASHIER</option>
@@ -87,6 +87,28 @@ function getOwner(){
   return null;
 }
 
+
+function loadStoreOptions(selected=''){
+  const sel=document.getElementById('storeCode');
+  if(!sel) return;
+  let stores=[];
+  try{
+    const db=JSON.parse(localStorage.getItem('systemq_v17_data')||'{}');
+    stores=(db.store||[]).filter(x=>!x.status||String(x.status).toUpperCase()==='ACTIVE');
+  }catch(e){}
+  const opts=stores.map(x=>{
+    const code=String(x.code||'').trim(), name=String(x.name||'').trim();
+    return {code,name};
+  }).filter(x=>x.code);
+  sel.innerHTML='<option value="">-- PILIH KODE STORE --</option>'+opts.map(x=>
+    '<option value="'+esc(x.code)+'"'+(String(selected)===x.code?' selected':'')+'>'+esc(x.code+(x.name?' - '+x.name:''))+'</option>'
+  ).join('');
+}
+function internalEmail(name,storeCode){
+  const slug=v=>String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'.').replace(/^\.|\.$/g,'').slice(0,40)||'user';
+  return slug(name)+'.'+slug(storeCode)+'@systemq.local';
+}
 function renderUsers(users){
   const body=document.getElementById('rows');
   body.innerHTML=users.map(u=>{
@@ -94,7 +116,7 @@ function renderUsers(users){
     const owner=String(u.role||'').toUpperCase()==='OWNER';
     return `<tr>
       <td><b>${esc(u.full_name||u.name||'-')}</b></td>
-      <td>${esc(u.email||'-')}</td>
+      <td>${esc(u.store_code||u.storeCode||'-')}</td>
       <td>${esc(u.role||'STAFF')}</td>
       <td><span class="status ${active?'':'off'}">${active?'AKTIF':'NONAKTIF'}</span></td>
       <td class="hide-mobile">${u.created_at?new Date(u.created_at).toLocaleDateString('id-ID'):'-'}</td>
@@ -111,6 +133,7 @@ async function loadUsers(){
     id:'systemq-owner',
     full_name:'SYSTEMQ OWNER',
     email:'owner@systemq.com',
+    store_code:'-',
     role:'OWNER',
     is_active:true,
     created_at:''
@@ -131,8 +154,9 @@ async function loadUsers(){
 function openAdd(){
   document.getElementById('modal').classList.remove('hidden');
   document.getElementById('mt').textContent='Tambah User';
-  ['name','email','password'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('email').disabled=false;
+  document.getElementById('name').value='';
+  document.getElementById('password').value='';
+  loadStoreOptions('');
   document.getElementById('passwordWrap').style.display='block';
   document.getElementById('role').value='STAFF';
   document.getElementById('saveBtn').onclick=saveUser;
@@ -143,32 +167,39 @@ function closeModal(){document.getElementById('modal').classList.add('hidden')}
 
 async function saveUser(){
   const name=document.getElementById('name').value.trim();
-  const email=document.getElementById('email').value.trim().toLowerCase();
+  const storeCode=document.getElementById('storeCode').value.trim();
   const password=document.getElementById('password').value;
   const role=document.getElementById('role').value;
 
-  if(!name||!email||!password){fm('Nama, email dan password wajib diisi.','err');return}
+  if(!name||!storeCode||!password){fm('Nama, Kode Store dan Password wajib diisi.','err');return}
   if(password.length<6){fm('Password minimal 6 karakter.','err');return}
 
+  const email=internalEmail(name,storeCode);
   const b=document.getElementById('saveBtn'); b.disabled=true; b.textContent='MEMBUAT...';
   try{
     const secondary=window.supabase.createClient(CFG.url,CFG.key,{
       auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
     });
     const r=await secondary.auth.signUp({
-      email,password,options:{data:{full_name:name,role:role}}
+      email,password,options:{data:{full_name:name,role:role,store_code:storeCode}}
     });
     if(r.error) throw r.error;
 
     const uid=r.data.user&&r.data.user.id;
     if(uid && sb){
-      const up=await sb.from('systemq_user_profiles').upsert({
-        id:uid,email,full_name:name,role,is_active:true
+      let up=await sb.from('systemq_user_profiles').upsert({
+        id:uid,email,full_name:name,role,is_active:true,store_code:storeCode
       });
+      if(up.error){
+        // Fallback untuk database lama yang belum memiliki kolom store_code.
+        up=await sb.from('systemq_user_profiles').upsert({
+          id:uid,email,full_name:name,role,is_active:true
+        });
+      }
       if(up.error) throw up.error;
     }
 
-    closeModal(); say('User berhasil dibuat: '+email,'ok'); await loadUsers();
+    closeModal(); say('User berhasil dibuat.','ok'); await loadUsers();
   }catch(e){
     fm(e.message||'Gagal membuat user.','err');
   }finally{
@@ -182,18 +213,24 @@ function editUser(id){
   document.getElementById('modal').classList.remove('hidden');
   document.getElementById('mt').textContent='Edit User';
   document.getElementById('name').value=x.full_name||x.name||'';
-  document.getElementById('email').value=x.email||'';
-  document.getElementById('email').disabled=true;
+  loadStoreOptions(x.store_code||x.storeCode||'');
   document.getElementById('passwordWrap').style.display='none';
   document.getElementById('role').value=x.role||'STAFF';
 
   const b=document.getElementById('saveBtn');
   b.textContent='SIMPAN PERUBAHAN';
   b.onclick=async()=>{
-    const r=await sb.from('systemq_user_profiles').update({
+    const payload={
       full_name:document.getElementById('name').value.trim(),
-      role:document.getElementById('role').value
-    }).eq('id',id);
+      role:document.getElementById('role').value,
+      store_code:document.getElementById('storeCode').value.trim()
+    };
+    if(!payload.full_name||!payload.store_code){fm('Nama dan Kode Store wajib diisi.','err');return}
+    let r=await sb.from('systemq_user_profiles').update(payload).eq('id',id);
+    if(r.error){
+      delete payload.store_code;
+      r=await sb.from('systemq_user_profiles').update(payload).eq('id',id);
+    }
     if(r.error){fm(r.error.message,'err');return}
     closeModal(); await loadUsers(); say('User berhasil diperbarui.');
   };
@@ -207,31 +244,77 @@ async function toggleUser(id,active){
   say(active?'User diaktifkan.':'User dinonaktifkan.');
 }
 
-function init(){
-  const owner=getOwner();
-  if(!owner){
+async function init(){
+  const localOwner=systemqOwnerSession();
+  if(!localOwner){
     location.replace('./login.html');
     return;
   }
 
-  // Owner row tampil terlebih dahulu, jadi halaman tidak pernah kosong.
-  renderUsers([{
+  // Tampilkan Owner langsung agar layar tidak kosong.
+  renderSystemqUsers([{
     id:'systemq-owner',
     full_name:'SYSTEMQ OWNER',
     email:'owner@systemq.com',
+    store_code:'-',
     role:'OWNER',
     is_active:true
   }]);
 
+  // Jika Supabase tersedia, muat staff tambahan tanpa menghapus Owner.
   try{
-    sb=window.supabase.createClient(CFG.url,CFG.key,{
-      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-    });
-  }catch(e){sb=null}
-
-  loadUsers();
+    if(typeof sb==='undefined' || !sb){
+      if(typeof CFG!=='undefined' && window.supabase){
+        sb=window.supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+      }
+    }
+    if(typeof sb!=='undefined' && sb){
+      const r=await sb.from('systemq_user_profiles').select('*').order('created_at',{ascending:true});
+      if(r && !r.error && Array.isArray(r.data)){
+        const staff=r.data.filter(x=>String(x.email||'').toLowerCase()!=='owner@systemq.com');
+        renderSystemqUsers([{
+          id:'systemq-owner',
+          full_name:'SYSTEMQ OWNER',
+          email:'owner@systemq.com',
+          role:'OWNER',
+          is_active:true
+        },...staff]);
+      }
+    }
+  }catch(e){
+    // Owner tetap tampil walaupun database belum dapat dimuat.
+  }
 }
 init();
+
+function systemqOwnerSession(){
+  try{
+    const keys=['systemq_bootstrap_owner','systemq_auth_user'];
+    for(const key of keys){
+      const u=JSON.parse(sessionStorage.getItem(key)||'null');
+      if(u && String(u.role||'').toUpperCase()==='OWNER' &&
+         String(u.email||'').toLowerCase()==='owner@systemq.com') return u;
+    }
+  }catch(e){}
+  return null;
+}
+
+function renderSystemqUsers(list){
+  const body=document.getElementById('rows') ||
+             document.getElementById('userRows') ||
+             document.getElementById('usersBody') ||
+             document.querySelector('tbody');
+  if(!body) return;
+  body.innerHTML=(list||[]).map(u=>{
+    const active=(u.is_active!==false && u.status!=='NONAKTIF');
+    const isOwner=String(u.role||'').toUpperCase()==='OWNER';
+    return '<tr><td><b>'+String(u.full_name||u.name||'-')+'</b></td>'+
+      '<td>'+String(u.email||'-')+'</td>'+
+      '<td>'+String(u.role||'STAFF')+'</td>'+
+      '<td>'+ (active?'AKTIF':'NONAKTIF') +'</td>'+
+      '<td>'+ (isOwner?'-':'EDIT / NONAKTIFKAN') +'</td></tr>';
+  }).join('');
+}
 </script>
 </body>
 </html>
