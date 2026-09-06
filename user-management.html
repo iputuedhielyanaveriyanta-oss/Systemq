@@ -1,11 +1,57 @@
 <!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SYSTEMQ • Manajemen User</title><script src="./auth.js"></script><style>
 body{margin:0;background:#f5f7f9;color:#17212b;font-family:Arial,sans-serif}header{padding:18px 22px;background:#18222d;color:#fff;display:flex;justify-content:space-between;align-items:center}header b{font-size:22px}header small{display:block;opacity:.65;margin-top:3px}main{max-width:1050px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.btn{border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;background:#18222d;color:#fff}.btn.orange{background:#ef7f1a}.btn.red{background:#d64b4b}.btn.gray{background:#687582}.card{background:#fff;border:1px solid #dfe5ea;border-radius:16px;padding:18px;box-shadow:0 6px 20px rgba(0,0,0,.04)}table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid #edf0f2;text-align:left;font-size:14px}th{color:#687582;font-size:12px}input,select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccd5dc;border-radius:10px;font-size:15px;margin-top:5px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions{display:flex;gap:6px;flex-wrap:wrap}.hidden{display:none!important}.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:15px;z-index:1000}.modal .card{width:min(560px,96vw)}label{font-size:13px;font-weight:700}.status{font-size:12px;padding:5px 8px;border-radius:99px;background:#e9f7ef;color:#17753d}.off{background:#fdeaea;color:#b22}.msg{margin:10px 0;padding:10px;border-radius:9px;display:none}.msg.err{display:block;background:#fdeaea;color:#b22}.msg.ok{display:block;background:#e9f7ef;color:#17753d}@media(max-width:700px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}table{font-size:12px}th,td{padding:9px 6px}.hide-mobile{display:none}}
-</style></head><body><header><div><b>SYSTEMQ</b><small>USER MANAGEMENT • OWNER ONLY</small></div><button class="btn gray" onclick="location.href='./index.html'">← DASHBOARD</button></header><main><div class="top"><div><h1 style="margin:0">Manajemen User</h1><p style="color:#687582">Tambah dan kelola akun staff SYSTEMQ.</p></div><button class="btn orange" onclick="openAdd()">＋ TAMBAH USER</button></div><div id="msg" class="msg"></div><div class="card"><table><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Status</th><th class="hide-mobile">Dibuat</th><th>Aksi</th></tr></thead><tbody id="rows"><tr><td colspan="6">Memuat...</td></tr></tbody></table></div></main>
+</style>
+<script>
+(function(){
+  try{
+    var b=JSON.parse(sessionStorage.getItem('systemq_bootstrap_owner')||'null');
+    var c=JSON.parse(sessionStorage.getItem('systemq_auth_user')||'null');
+    var ok=(b&&b.role==='OWNER'&&String(b.email||'').toLowerCase()==='owner@systemq.com')||
+           (c&&c.role==='OWNER'&&String(c.email||'').toLowerCase()==='owner@systemq.com');
+    if(ok) window.SYSTEMQ_OWNER_SESSION=true;
+  }catch(e){}
+})();
+</script>
+</head><body><header><div><b>SYSTEMQ</b><small>USER MANAGEMENT • OWNER ONLY</small></div><button class="btn gray" onclick="location.href='./index.html'">← DASHBOARD</button></header><main><div class="top"><div><h1 style="margin:0">Manajemen User</h1><p style="color:#687582">Tambah dan kelola akun staff SYSTEMQ.</p></div><button class="btn orange" onclick="openAdd()">＋ TAMBAH USER</button></div><div id="msg" class="msg"></div><div class="card"><table><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Status</th><th class="hide-mobile">Dibuat</th><th>Aksi</th></tr></thead><tbody id="rows"><tr><td colspan="6">Memuat...</td></tr></tbody></table></div></main>
 <div id="modal" class="modal hidden"><div class="card"><h2 id="mt">Tambah User</h2><div class="grid"><label>Nama<input id="name"></label><label>Email<input id="email" type="email"></label><label>Password<input id="password" type="password" minlength="6" placeholder="Minimal 6 karakter"></label><label>Role<select id="role"><option>STAFF</option><option>LEADER</option><option>CASHIER</option><option>FINANCE</option><option>INVENTORY</option></select></label></div><div id="formMsg" class="msg"></div><div class="actions" style="margin-top:16px"><button class="btn orange" id="saveBtn" onclick="saveUser()">SIMPAN USER</button><button class="btn gray" onclick="closeModal()">BATAL</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
 const CFG={url:'https://jyqheupnegdrdbtpojhl.supabase.co',key:'sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds'};let sb,owner,profiles=[];
 function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function say(t,kind='ok'){let e=document.getElementById('msg');e.textContent=t;e.className='msg '+kind}function fm(t,k){let e=document.getElementById('formMsg');e.textContent=t;e.className='msg '+k}
-async function init(){sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:true}});let r=await sb.auth.getSession();if(!r.data.session){location.replace('./login.html');return}owner=r.data.session.user;let p=await sb.from('systemq_user_profiles').select('role').eq('id',owner.id).maybeSingle();if(!p.data||!['OWNER','ADMIN'].includes(String(p.data.role).toUpperCase())){alert('Akses Owner diperlukan.');location.replace('./index.html');return}loadUsers()}
+async function init(){
+  sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:true}});
+
+  // SYSTEMQ Owner login uses its own session. Do not redirect this Owner to login.
+  var boot=null;
+  try{ boot=JSON.parse(sessionStorage.getItem('systemq_bootstrap_owner')||'null'); }catch(e){}
+  var cached=null;
+  try{ cached=JSON.parse(sessionStorage.getItem('systemq_auth_user')||'null'); }catch(e){}
+
+  if((boot&&boot.role==='OWNER'&&String(boot.email||'').toLowerCase()==='owner@systemq.com') ||
+     (cached&&cached.role==='OWNER'&&String(cached.email||'').toLowerCase()==='owner@systemq.com')){
+    owner={
+      id:(cached&&cached.id)||'bootstrap-owner',
+      email:'owner@systemq.com',
+      app_metadata:{role:'OWNER'}
+    };
+    loadUsers();
+    return;
+  }
+
+  // Normal users still use Supabase session and must have Owner/Admin role.
+  let r=await sb.auth.getSession();
+  if(!r.data.session){
+    location.replace('./login.html');
+    return;
+  }
+  owner=r.data.session.user;
+  let prof=await sb.from('systemq_user_profiles').select('role').eq('id',owner.id).maybeSingle();
+  if(!prof.data||!['OWNER','ADMIN'].includes(String(prof.data.role).toUpperCase())){
+    alert('Akses Owner diperlukan.');
+    location.replace('./index.html');
+    return;
+  }
+  loadUsers();
+}
 async function loadUsers(){let r=await sb.from('systemq_user_profiles').select('*').order('created_at',{ascending:false});if(r.error){say(r.error.message,'err');return}profiles=r.data||[];let body=document.getElementById('rows');body.innerHTML=profiles.map(x=>`<tr><td>${esc(x.full_name||'-')}</td><td>${esc(x.email||'')}</td><td><b>${esc(x.role)}</b></td><td><span class="status ${x.is_active===false?'off':''}">${x.is_active===false?'NONAKTIF':'AKTIF'}</span></td><td class="hide-mobile">${x.created_at?new Date(x.created_at).toLocaleString('id-ID'):'-'}</td><td><div class="actions"><button class="btn gray" onclick="editUser('${x.id}')">EDIT</button>${x.role==='OWNER'?'':`<button class="btn ${x.is_active===false?'orange':'red'}" onclick="toggleUser('${x.id}',${x.is_active===false})">${x.is_active===false?'AKTIFKAN':'NONAKTIFKAN'}</button>`}</div></td></tr>`).join('')||'<tr><td colspan="6">Belum ada user.</td></tr>'}
 function openAdd(){document.getElementById('modal').classList.remove('hidden');document.getElementById('mt').textContent='Tambah User';['name','email','password'].forEach(id=>document.getElementById(id).value='');document.getElementById('role').value='STAFF';fm('','')}
 function closeModal(){document.getElementById('modal').classList.add('hidden')}
