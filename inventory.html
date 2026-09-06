@@ -25,7 +25,6 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
 @media(max-width:700px){.topbar,.pageHead{flex-direction:column;align-items:flex-start}main{padding:14px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary{flex-direction:column}.manualHead{align-items:flex-start;flex-direction:column}.manualForm{grid-template-columns:1fr}.manualAdd button{width:100%}.scanEntry{grid-template-columns:1fr}.scanEntry button{width:100%}}
 
 </style>
-<script src="./auth.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -42,7 +41,7 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
       <h1>GOODS RECEIVING</h1>
       <p>Catat penerimaan barang dari supplier. Stok belum berubah pada tahap Draft.</p>
     </div>
-    <button id="newGRMain" class="orange" type="button">＋ NEW GOODS RECEIVING</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="openReturnMain" type="button">↩ RETUR SUPPLIER</button><button id="newGRMain" class="orange" type="button">＋ NEW GOODS RECEIVING</button></div>
   </div>
   <div class="panel">
     <input id="search" class="search" type="search" placeholder="Cari Nomor PL atau Supplier...">
@@ -218,6 +217,22 @@ button:disabled{opacity:.45;cursor:not-allowed}.orange{background:#ee952e;color:
       <button id="postBtn" class="orange" type="button" disabled>POSTING GOODS RECEIVING</button>
     </div>
   </div>
+</section>
+
+<section id="returnView" class="hidden">
+  <div class="pageHead"><div><h1>RETUR SUPPLIER</h1><p>Buat dokumen retur barang. Retur langsung mengurangi stok dan tercatat di Kartu Stok.</p></div><button id="returnBack" type="button">← KEMBALI</button></div>
+  <div class="panel">
+    <div class="grid">
+      <div class="field"><label>NOMOR RETUR <em>*</em></label><input id="retNo" type="text" readonly></div>
+      <div class="field"><label>TANGGAL</label><input id="retDate" type="date"></div>
+      <div class="field full"><label>KETERANGAN RETUR <em>*</em></label><textarea id="retNote" rows="2" placeholder="Contoh: Barang rusak, salah kirim, cacat produksi"></textarea></div>
+      <div class="field full"><label>SCAN BARCODE</label><div class="scanEntry"><input id="retBarcode" type="text" autocomplete="off" placeholder="Scan atau ketik barcode"><button id="retAdd" class="orange" type="button">＋ TAMBAH</button></div><small id="retProductInfo">Scan barcode untuk menambahkan barang ke retur.</small></div>
+    </div>
+    <div class="tableWrap" style="margin-top:16px"><table><thead><tr><th>NO</th><th>BARCODE</th><th>SKU</th><th>DETAIL SKU / BARANG</th><th>QTY</th><th>AKSI</th></tr></thead><tbody id="retBody"></tbody></table></div>
+    <div class="summary"><div><b id="retLineTotal">0</b><span>TOTAL SKU</span></div><div><b id="retQtyTotal">0</b><span>TOTAL QTY</span></div></div>
+    <div class="actions"><label for="retImport" class="fileLabel" style="padding:10px 13px">IMPORT</label><input id="retImport" class="fileInput" type="file" accept=".xlsx,.xls,.csv"><button id="retExport" type="button">EXPORT</button><button id="retNew" type="button">NEW / RESET</button><button id="retSave" class="orange" type="button">SIMPAN RETUR</button></div>
+  </div>
+  <div class="panel" style="margin-top:18px"><h2 style="margin-top:0;font-size:17px">DAFTAR RETUR SUPPLIER</h2><input id="retSearch" class="search" type="search" placeholder="Cari nomor retur atau keterangan..."><div class="tableWrap"><table><thead><tr><th>TANGGAL</th><th>NOMOR RETUR</th><th>KETERANGAN</th><th>TOTAL SKU</th><th>TOTAL QTY</th><th>AKSI</th></tr></thead><tbody id="retListBody"></tbody></table></div></div>
 </section>
 </main>
 
@@ -602,6 +617,33 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 <!-- GR_IMPORT_PL_MANUAL_SCAN_BARCODE_20260831_FINAL -->
 
+
+<script>
+(function(){
+'use strict';
+var KEY='systemq_inventory_supplier_returns_v1', STOCK='systemq_inventory_stock_v1', MOVE='systemq_inventory_stock_movement_v1', MASTER='systemq_v17_data';
+var rows=[], editId=null;
+function E(id){return document.getElementById(id)} function t(v){return String(v==null?'':v)} function esc(v){return t(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function getRows(){try{rows=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){rows=[]}if(!Array.isArray(rows))rows=[]}
+function getMaster(){try{return JSON.parse(localStorage.getItem(MASTER)||'{}')}catch(e){return {}}}
+function products(){var m=getMaster();return Array.isArray(m.product)?m.product:[]}
+function view(name){['listView','formView','importView','scanView','returnView'].forEach(function(id){var n=E(id);if(n)n.classList.toggle('hidden',id!==name)})}
+function newNo(){return 'RET-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+String(rows.length+1).padStart(4,'0')}
+function reset(){editId=null;E('retNo').value=newNo();E('retDate').value=new Date().toISOString().slice(0,10);E('retNote').value='';E('retBarcode').value='';E('retProductInfo').textContent='Scan barcode untuk menambahkan barang ke retur.';window.__retItems=[];renderItems()}
+function items(){return window.__retItems||(window.__retItems=[])}
+function renderItems(){var a=items(), b=E('retBody');b.innerHTML=a.length?'':'<tr><td colspan="6" class="empty">Belum ada barang retur.</td></tr>';a.forEach(function(x,i){b.innerHTML+='<tr><td>'+(i+1)+'</td><td><b>'+esc(x.barcode)+'</b></td><td>'+esc(x.sku)+'</td><td>'+esc(x.name)+'</td><td><input type="number" min="1" value="'+x.qty+'" data-i="'+i+'" class="retQty" style="max-width:100px"></td><td><button type="button" class="retDel" data-i="'+i+'">HAPUS</button></td></tr>'});E('retLineTotal').textContent=a.length;E('retQtyTotal').textContent=a.reduce(function(n,x){return n+(+x.qty||0)},0);document.querySelectorAll('.retQty').forEach(function(n){n.onchange=function(){a[+this.dataset.i].qty=Math.max(1,+this.value||1);renderItems()}});document.querySelectorAll('.retDel').forEach(function(n){n.onclick=function(){a.splice(+this.dataset.i,1);renderItems()}})}
+function addBarcode(code){code=t(code||E('retBarcode').value).trim();if(!code)return;var p=products().find(function(x){return t(x.barcode).trim()===code||t(x.sku).trim()===code});if(!p){alert('Barcode / SKU tidak ditemukan di Master Barang.');return}var a=items(), f=a.find(function(x){return x.barcode===t(p.barcode).trim()});if(f)f.qty++;else a.push({barcode:t(p.barcode).trim(),sku:t(p.sku).trim(),name:t(p.name).trim(),qty:1});E('retBarcode').value='';E('retProductInfo').textContent='Ditambahkan: '+t(p.sku)+' • '+t(p.name);renderItems();E('retBarcode').focus()}
+function renderList(){getRows();var q=t(E('retSearch').value).toLowerCase(),b=E('retListBody'),a=rows.filter(function(r){return (t(r.no)+' '+t(r.note)).toLowerCase().includes(q)});b.innerHTML=a.length?'':'<tr><td colspan="6" class="empty">Belum ada data retur supplier.</td></tr>';a.forEach(function(r){b.innerHTML+='<tr><td>'+esc(r.date)+'</td><td><b>'+esc(r.no)+'</b></td><td>'+esc(r.note)+'</td><td>'+r.items.length+'</td><td>'+r.items.reduce(function(n,x){return n+(+x.qty||0)},0)+'</td><td><button class="retEdit" data-id="'+r.id+'">EDIT</button> <button class="retDelete" data-id="'+r.id+'">HAPUS</button></td></tr>'});document.querySelectorAll('.retEdit').forEach(function(n){n.onclick=function(){edit(this.dataset.id)}});document.querySelectorAll('.retDelete').forEach(function(n){n.onclick=function(){del(this.dataset.id)}})}
+function edit(id){getRows();var r=rows.find(function(x){return x.id===id});if(!r)return;editId=id;E('retNo').value=r.no;E('retDate').value=r.date;E('retNote').value=r.note;window.__retItems=JSON.parse(JSON.stringify(r.items||[]));renderItems();view('returnView')}
+function del(id){getRows();var r=rows.find(function(x){return x.id===id});if(!r)return;if(!confirm('Hapus data retur '+r.no+'? Jika sudah disimpan, penghapusan data tidak otomatis mengembalikan stok.'))return;rows=rows.filter(function(x){return x.id!==id});localStorage.setItem(KEY,JSON.stringify(rows));renderList()}
+function save(){var no=t(E('retNo').value),note=t(E('retNote').value).trim(),a=items();if(!no||!note||!a.length){alert('Nomor retur, keterangan, dan minimal satu barang wajib diisi.');return}getRows();if(editId){var old=rows.find(function(x){return x.id===editId});if(old){old.no=no;old.date=E('retDate').value;old.note=note;old.items=JSON.parse(JSON.stringify(a));localStorage.setItem(KEY,JSON.stringify(rows));alert('Retur berhasil diubah. Perubahan dokumen tidak mengubah stok ulang.');renderList();return}}var stock=[],mov=[];try{stock=JSON.parse(localStorage.getItem(STOCK)||'[]')}catch(e){}try{mov=JSON.parse(localStorage.getItem(MOVE)||'[]')}catch(e){}a.forEach(function(it){var s=stock.find(function(x){return t(x.barcode).trim()===it.barcode});if(!s){s={barcode:it.barcode,sku:it.sku,name:it.name,qty:0};stock.push(s)}if((+s.qty||0)<(+it.qty||0))throw new Error('Stok tidak cukup untuk '+it.sku+' ('+s.qty+' tersedia, '+it.qty+' retur).')});try{a.forEach(function(it){var s=stock.find(function(x){return t(x.barcode).trim()===it.barcode});s.qty=(+s.qty||0)-(+it.qty||0);mov.push({id:'RET-'+Date.now()+'-'+it.barcode,date:E('retDate').value,type:'RETURN SUPPLIER',reference:no,barcode:it.barcode,sku:it.sku,name:it.name,inQty:0,outQty:+it.qty,qty:+it.qty,note:note,createdAt:new Date().toISOString()})})}catch(err){alert(err.message);return}var rec={id:'ret-'+Date.now(),no:no,date:E('retDate').value,note:note,items:JSON.parse(JSON.stringify(a)),createdAt:new Date().toISOString()};rows.push(rec);localStorage.setItem(STOCK,JSON.stringify(stock));localStorage.setItem(MOVE,JSON.stringify(mov));localStorage.setItem(KEY,JSON.stringify(rows));alert('Retur supplier berhasil disimpan. Stok sudah berkurang dan Stock Movement tercatat.');reset();renderList()}
+function exportX(){getRows();var out=[];rows.forEach(function(r){r.items.forEach(function(x){out.push({'Tanggal':r.date,'Nomor Retur':r.no,'Keterangan':r.note,'Barcode':x.barcode,'SKU':x.sku,'Nama Barang':x.name,'Qty':x.qty})})});var ws=XLSX.utils.json_to_sheet(out),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Retur Supplier');XLSX.writeFile(wb,'retur-supplier.xlsx')}
+function importFile(e){var f=e.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:'array'}),data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});data.forEach(function(r){var code=t(r.Barcode||r.barcode||r.SKU||r.sku).trim(),qty=+((r.Qty||r.qty)||1);var p=products().find(function(x){return t(x.barcode).trim()===code||t(x.sku).trim()===code});if(p){var fnd=items().find(function(x){return x.barcode===t(p.barcode).trim()});if(fnd)fnd.qty+=qty;else items().push({barcode:t(p.barcode).trim(),sku:t(p.sku).trim(),name:t(p.name).trim(),qty:qty})}});renderItems();alert('Import selesai. Periksa qty sebelum Simpan.')}catch(err){alert('Import gagal: '+err.message)}};rd.readAsArrayBuffer(f)}
+function init(){getRows();E('openReturnMain').onclick=function(){view('returnView');reset();renderList()};E('returnBack').onclick=function(){view('listView')};E('retAdd').onclick=function(){addBarcode()};E('retBarcode').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();addBarcode()}};E('retSave').onclick=save;E('retNew').onclick=reset;E('retExport').onclick=exportX;E('retImport').onchange=importFile;E('retSearch').oninput=renderList}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+
 <!-- SYSTEMQ CLOUD LIVE SYNC -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -609,14 +651,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 'use strict';
 var SYSTEMQ_SUPABASE_URL='https://jyqheupnegdrdbtpojhl.supabase.co';
 var SYSTEMQ_SUPABASE_KEY='sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds';
-var SYSTEMQ_KEYS=[
- 'systemq_v17_data',
- 'systemq_inventory_goods_receiving_v1',
- 'systemq_inventory_stock_v1',
- 'systemq_inventory_stock_movement_v1',
- 'systemq_cashier_sales_v1',
- 'systemq_cashier_transactions_v1'
-];
+var SYSTEMQ_KEYS=['systemq_v17_data','systemq_inventory_goods_receiving_v1','systemq_inventory_stock_v1','systemq_inventory_stock_movement_v1','systemq_cashier_sales_v1','systemq_cashier_transactions_v1','systemq_customer_database_v1','systemq_cashier_closing_v1','systemq_finance_entries_v1','systemq_finance_accounts_v1','systemq_inventory_costs_v1','systemq_finance_closings_v1','systemq_supplier_payments_v1','systemq_supplier_invoices_v1','systemq_accounting_journals_v1','systemq_inventory_supplier_returns_v1'];
 var sb=null, ready=false, applying=false, timer=null;
 
 function snapshot(){

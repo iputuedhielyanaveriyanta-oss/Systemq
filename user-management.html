@@ -17,7 +17,24 @@ body{margin:0;background:#f5f7f9;color:#17212b;font-family:Arial,sans-serif}head
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
 const CFG={url:'https://jyqheupnegdrdbtpojhl.supabase.co',key:'sb_publishable_m86qfyYUEvp6cIi3VMG3Cw_iY-5t9ds'};let sb,owner,profiles=[];
 function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function say(t,kind='ok'){let e=document.getElementById('msg');e.textContent=t;e.className='msg '+kind}function fm(t,k){let e=document.getElementById('formMsg');e.textContent=t;e.className='msg '+k}
+function systemqOwnerSession(){
+  try{
+    var b=JSON.parse(sessionStorage.getItem('systemq_bootstrap_owner')||'null');
+    var c=JSON.parse(sessionStorage.getItem('systemq_auth_user')||'null');
+    var ok=function(x){
+      return x && String(x.role||'').toUpperCase()==='OWNER' &&
+        String(x.email||'').toLowerCase()==='owner@systemq.com';
+    };
+    return ok(b)||ok(c);
+  }catch(e){return false;}
+}
+
 async function init(){
+  if(systemqOwnerSession()){
+    owner={id:'bootstrap-owner',email:'owner@systemq.com'};
+    loadUsers();
+    return;
+  }
   sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:true}});
 
   // SYSTEMQ Owner login uses its own session. Do not redirect this Owner to login.
@@ -40,7 +57,7 @@ async function init(){
   // Normal users still use Supabase session and must have Owner/Admin role.
   let r=await sb.auth.getSession();
   if(!r.data.session){
-    location.replace('./login.html');
+    (systemqOwnerSession()?void 0:location.replace('./login.html'));
     return;
   }
   owner=r.data.session.user;
