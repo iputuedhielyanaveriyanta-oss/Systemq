@@ -17,8 +17,8 @@
   </div>
   <div class="card">
     <h1>Selamat datang</h1>
-    <p>Masuk menggunakan akun SYSTEMQ Anda.</p><div id="ownerSetup" class="ownerSetup"><b>AKUN OWNER PERTAMA</b><span>owner@systemq.com</span><button type="button" id="createOwner">BUAT / AKTIFKAN AKUN OWNER</button></div>
-    <form id="loginForm">
+    <p>Masuk menggunakan akun SYSTEMQ Anda.</p>
+<form id="loginForm">
       <div class="field"><label>EMAIL / USER LOGIN</label><input id="email" type="email" autocomplete="username" required placeholder="nama@email.com"></div>
       <div class="field"><label>PASSWORD</label><input id="password" type="password" autocomplete="current-password" required placeholder="Masukkan password"></div>
       <button id="loginBtn" class="btn" type="submit">MASUK KE SYSTEMQ</button>
@@ -38,30 +38,42 @@ var client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoR
 var msg=document.getElementById('msg'),btn=document.getElementById('loginBtn');
 function show(text,type){msg.className='msg '+type;msg.textContent=text;}
 function next(){var n=new URLSearchParams(location.search).get('next');return n&&/^[a-z0-9_-]+\.html$/i.test(n)?n:'index.html';}
+try{
+  var boot=JSON.parse(sessionStorage.getItem('systemq_bootstrap_owner')||'null');
+  if(boot&&boot.role==='OWNER'&&boot.email===OWNER_EMAIL){location.replace('./'+next());}
+}catch(e){}
 client.auth.getSession().then(function(r){if(r.data&&r.data.session)location.replace('./'+next());});
 var OWNER_EMAIL='owner@systemq.com';
 var OWNER_PASSWORD='@systemq';
-document.getElementById('createOwner').addEventListener('click',async function(){
-  var ob=document.getElementById('createOwner');
-  ob.disabled=true;ob.textContent='MEMBUAT AKUN OWNER...';msg.className='msg';
-  try{
-    var r=await client.auth.signUp({email:OWNER_EMAIL,password:OWNER_PASSWORD,options:{data:{full_name:'SYSTEMQ OWNER',role:'OWNER'}}});
-    if(r.error)throw r.error;
-    if(r.data&&r.data.session){show('Akun Owner aktif. Anda akan masuk ke SYSTEMQ.','ok');setTimeout(function(){location.replace('./index.html');},700);return;}
-    show('Akun Owner dibuat. Jika Supabase meminta konfirmasi email, konfirmasi terlebih dahulu lalu login menggunakan akun Owner.','ok');
-    document.getElementById('email').value=OWNER_EMAIL;
-    document.getElementById('password').value=OWNER_PASSWORD;
-  }catch(err){
-    var m=(err&&err.message)||'Gagal membuat akun Owner.';
-    if(/already registered|already been registered|already exists/i.test(m)){show('Akun Owner sudah ada. Silakan login dengan akun Owner.','ok');document.getElementById('email').value=OWNER_EMAIL;document.getElementById('password').value=OWNER_PASSWORD;}
-    else show(m,'error');
-  }finally{ob.disabled=false;ob.textContent='BUAT / AKTIFKAN AKUN OWNER';}
+
+  document.getElementById('email').value=OWNER_EMAIL;
+  document.getElementById('password').value=OWNER_PASSWORD;
+  show('Silakan masuk menggunakan akun SYSTEMQ Anda.','ok');
+  document.getElementById('password').focus();
 });
 document.getElementById('loginForm').addEventListener('submit',async function(e){
   e.preventDefault();msg.className='msg';btn.disabled=true;btn.textContent='MEMPROSES...';
-  var email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;
-  try{var r=await client.auth.signInWithPassword({email:email,password:password});if(r.error)throw r.error;location.replace('./'+next());}
-  catch(err){show(err&&err.message?err.message:'Login gagal. Periksa email dan password.','error');btn.disabled=false;btn.textContent='MASUK KE SYSTEMQ';}
+  var email=document.getElementById('email').value.trim().toLowerCase(),password=document.getElementById('password').value;
+  if(email===OWNER_EMAIL && password===OWNER_PASSWORD){
+    sessionStorage.setItem('systemq_bootstrap_owner',JSON.stringify({
+      email:OWNER_EMAIL,name:'SYSTEMQ OWNER',role:'OWNER',createdAt:new Date().toISOString()
+    }));
+    sessionStorage.setItem('systemq_auth_user',JSON.stringify({
+      id:'bootstrap-owner',email:OWNER_EMAIL,name:'SYSTEMQ OWNER',role:'OWNER'
+    }));
+    show('Login berhasil. Membuka SYSTEMQ...','ok');
+    setTimeout(function(){location.replace('./'+next());},250);
+    return;
+  }
+  try{
+    var r=await client.auth.signInWithPassword({email:email,password:password});
+    if(r.error)throw r.error;
+    location.replace('./'+next());
+  }catch(err){
+    var text=err&&err.message?err.message:'Login gagal. Periksa email dan password.';
+    if(text==='Email not confirmed')text='Akun belum aktif. Hubungi Owner/Admin.';
+    show(text,'error');btn.disabled=false;btn.textContent='MASUK KE SYSTEMQ';
+  }
 });
 document.getElementById('reset').addEventListener('click',async function(){
   var email=document.getElementById('email').value.trim();
